@@ -141,7 +141,7 @@ start_all_services() {
     php artisan cache:clear >> "$LOG_DIR/services.log" 2>&1
     
     # Start Reverb server first (other services may depend on it)
-    start_service "reverb" "php artisan reverb:start"
+    #start_service "reverb" "php artisan reverb:start"
     
     # Wait for Reverb to be fully ready
     sleep 3
@@ -155,7 +155,7 @@ start_all_services() {
     start_service "afl-standings" "php artisan api:afl:standing --recurring"
 
     # Start queue listener
-    start_service "queue" "php artisan queue:work"
+    #start_service "queue" "php artisan queue:work"
     
     log_message "All services startup sequence completed"
     log_message "You can monitor logs in: $LOG_DIR/"
