@@ -2,32 +2,27 @@
 
 # Laravel Background Services Script
 # This script starts AFL data fetching, Reverb WebSocket server, and queue listener
-# All services run in the background with proper logging
+# All services run in the background with console output only (no file logging)
 
-# Set script directory and log directory
+# Set script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_DIR="/var/www/html/storage/logs"
 PID_DIR="/tmp"
 
-# Create log directory if it doesn't exist
-mkdir -p "$LOG_DIR"
-
-# Function to log messages
+# Function to log messages (console only)
 log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_DIR/services.log"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
 # Function to start a service in background
 start_service() {
     local service_name=$1
     local command=$2
-    local log_file="$LOG_DIR/${service_name}.log"
     local pid_file="$PID_DIR/${service_name}.pid"
     
     log_message "Starting $service_name..."
     
-    # Start the service in background and capture PID
-    nohup $command >> "$log_file" 2>&1 &
+    # Start the service in background and capture PID (output to /dev/null)
+    nohup $command > /dev/null 2>&1 &
     local pid=$!
     
     # Save PID to file
@@ -38,7 +33,6 @@ start_service() {
     
     if kill -0 $pid 2>/dev/null; then
         log_message "$service_name started successfully (PID: $pid)"
-        log_message "Logs: $log_file"
     else
         log_message "ERROR: Failed to start $service_name"
         return 1
@@ -57,6 +51,16 @@ stop_services() {
             log_message "Stopped AFL data service (PID: $pid)"
         fi
         rm -f "$PID_DIR/afl-data.pid"
+    fi
+    
+    # Stop AFL standings
+    if [ -f "$PID_DIR/afl-standings.pid" ]; then
+        local pid=$(cat "$PID_DIR/afl-standings.pid")
+        if kill -0 $pid 2>/dev/null; then
+            kill -TERM $pid
+            log_message "Stopped AFL standings service (PID: $pid)"
+        fi
+        rm -f "$PID_DIR/afl-standings.pid"
     fi
     
     # Stop Reverb server
@@ -98,6 +102,18 @@ check_status() {
         log_message "AFL data service is not running"
     fi
     
+    # Check AFL standings service
+    if [ -f "$PID_DIR/afl-standings.pid" ]; then
+        local pid=$(cat "$PID_DIR/afl-standings.pid")
+        if kill -0 $pid 2>/dev/null; then
+            log_message "AFL standings service is running (PID: $pid)"
+        else
+            log_message "AFL standings service is not running"
+        fi
+    else
+        log_message "AFL standings service is not running"
+    fi
+    
     # Check Reverb server
     if [ -f "$PID_DIR/reverb.pid" ]; then
         local pid=$(cat "$PID_DIR/reverb.pid")
@@ -135,10 +151,10 @@ restart_services() {
 start_all_services() {
     log_message "Starting all Laravel background services..."
     
-    # Clear any previous caches
+    # Clear any previous caches (output to /dev/null)
     log_message "Clearing caches..."
-    php artisan config:clear >> "$LOG_DIR/services.log" 2>&1
-    php artisan cache:clear >> "$LOG_DIR/services.log" 2>&1
+    php artisan config:clear > /dev/null 2>&1
+    php artisan cache:clear > /dev/null 2>&1
     
     # Start Reverb server first (other services may depend on it)
     #start_service "reverb" "php artisan reverb:start"
@@ -146,11 +162,10 @@ start_all_services() {
     # Wait for Reverb to be fully ready
     sleep 3
     
-    
     # Wait for queue to be ready
     sleep 2
     
-    # Start AFL data fetching (this should be last as it may depend on the others)
+    # Start AFL data fetching and standings
     start_service "afl-data" "php artisan api:afl --recurring"
     start_service "afl-standings" "php artisan api:afl:standing --recurring"
 
@@ -158,7 +173,7 @@ start_all_services() {
     #start_service "queue" "php artisan queue:work"
     
     log_message "All services startup sequence completed"
-    log_message "You can monitor logs in: $LOG_DIR/"
+    log_message "Services are running in background with no file logging"
     log_message "Use '$0 status' to check service status"
     log_message "Use '$0 stop' to stop all services"
 }
