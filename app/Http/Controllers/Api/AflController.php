@@ -67,6 +67,7 @@ class AflController extends Controller
 
         if ($round !== $currentRound) {
             return response()->json([
+                'round' => $round,
                 'status' => 'OK'
             ]);
         }
