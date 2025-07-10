@@ -196,15 +196,15 @@ trait MatchAnalysis
         $awayTeamName = $match['visitorteam']['@name'] ?? 'Away Team';
 
         $restructuredQuarters = [];
-        
+
         // Handle both array and single item cases
         $quarterData = $quarters['quarter'];
-        
+
         // If it's a single quarter (not in an array), convert it to an array
         if (!isset($quarterData[0]) && is_array($quarterData)) {
             $quarterData = [$quarterData];
         }
-        
+
         // Make sure we have an array to iterate
         if (!is_array($quarterData)) {
             return $quarters;
@@ -215,7 +215,7 @@ trait MatchAnalysis
             if (!isset($quarter['@name'])) {
                 continue;
             }
-            
+
             $quarterNumber = $quarter['@name'];
 
             // Add team names and formatted stats

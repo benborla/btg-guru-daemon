@@ -93,6 +93,29 @@ if (!function_exists('get_current_round')) {
     }
 }
 
+if (!function_exists('get_schedule_by_round')) {
+    function get_schedule_by_round(string $round): array
+    {
+        $schedules = get_schedules();
+
+        foreach ($schedules as $schedule) {
+            if ($schedule['round'] == $round) {
+                // Format dates from YYYY-MM-DD to DD.MM.YYYY
+                $startDate = Carbon::parse($schedule['start']);
+                $endDate = Carbon::parse($schedule['end']);
+                
+                return [
+                    'start' => $startDate->format('d.m.Y'),
+                    'end' => $endDate->format('d.m.Y'),
+                    'round' => $schedule['round']
+                ];
+            }
+        }
+
+        return [];
+    }
+}
+
 if (!function_exists('has_match_today')) {
     function has_match_today(): bool
     {

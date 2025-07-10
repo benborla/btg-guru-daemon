@@ -55,6 +55,19 @@ class AflApiResponse extends Model
             ->first();
     }
 
+    public function scopeGetLatestRoundSchedule($query, string $round = null)
+    {
+        $round = $round || get_current_round()['round'];
+        return $query->where('round', $round)
+            ->orderBy('updated_at', 'desc')
+            ->first();
+    }
+
+    public function scopeGetScheduleByRound($query, string $round)
+    {
+
+    }
+
     public function scopeGetLatestData($query)
     {
         return $this->scopeGetDataBy($query, self::URI_LIVE, AflRequestType::Live->name);
