@@ -41,6 +41,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/scoreboard', [AflController::class, 'scoreboard']);
         Route::get('/standing', [AflController::class, 'standing']);
         Route::get('/schedules', [AflController::class, 'schedules']);
+        Route::get('/live-match-feed', [AflController::class, 'liveMatchDataFeed']);
     });
 
     // Auth routes

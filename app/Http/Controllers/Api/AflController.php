@@ -71,11 +71,11 @@ class AflController extends Controller
                 'status' => 'OK'
             ]);
         }
-        
+
         if ($scheduleData->isEmpty()) {
             return response()->json([]);
         }
-        
+
         $formattedSchedules = $scheduleData
             ->map(function ($match) {
                 return [
@@ -115,13 +115,13 @@ class AflController extends Controller
             })
             ->values()
             ->all();
-        
+
         return response()->json([
             'round' => $round,
             'data' => $formattedSchedules
         ]);
     }
-    
+
     /**
      * Helper method to generate a consistent team ID
      * 
@@ -152,7 +152,7 @@ class AflController extends Controller
             'Brisbane Lions' => '1032',
             'Carlton Blues' => '1040'
         ];
-        
+
         return $teamMap[$teamName] ?? '1000'; // Default ID if team not found
     }
 
@@ -169,5 +169,10 @@ class AflController extends Controller
             'upcoming_match_schedule' => get_schedule_by_round(get_current_round()['round'])
 
         ]);
+    }
+
+    public function liveMatchDataFeed(): JsonResponse
+    {
+        return response()->json($this->aflService->getCurrentMatchData());
     }
 }
