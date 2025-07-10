@@ -77,12 +77,12 @@ class AflService
 
     private function hydrate()
     {
-	$data = AflApiResponse::getLatestData();
-	$response = [];
+        $data = AflApiResponse::getLatestData();
+        $response = [];
 
-	if ($data->count()) {
-		$response = $data->response;
-	}
+        if ($data->count()) {
+            $response = $data->response;
+        }
 
         $this->analyzer->hydrate($response);
     }
@@ -125,5 +125,10 @@ class AflService
     public function getPreviousMatchData(): array
     {
         return $this->analyzer->getPreviousMatchData();
+    }
+
+    public function getTeams()
+    {
+        return $this->analyzer->getAllTeamNames();
     }
 }

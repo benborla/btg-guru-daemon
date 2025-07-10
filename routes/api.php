@@ -36,6 +36,12 @@ Route::prefix('v1')->group(function () {
         return response()->json(['status' => 'ok']);
     });
 
+    Route::prefix('afl')->group(function () {
+        Route::get('/has-match-today', [AflController::class, 'hasMatchToday']);
+        Route::get('/scoreboard', [AflController::class, 'scoreboard']);
+        Route::get('/standing', [AflController::class, 'standing']);
+    });
+
     // Auth routes
     Route::post('/login', [AuthController::class, 'login']);
 
