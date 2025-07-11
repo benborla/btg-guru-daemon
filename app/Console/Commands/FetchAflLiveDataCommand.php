@@ -48,7 +48,7 @@ class FetchAflLiveDataCommand extends Command
 
         // get the starting time in seconds
         $startTime = microtime(true);
-        $data = $this->service->getApiLiveData();
+        $data = $this->service->getApiLiveData('');
         $endTime = microtime(true);
         $responseTime = $endTime - $startTime;
 

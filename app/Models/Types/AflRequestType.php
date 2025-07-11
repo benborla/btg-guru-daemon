@@ -7,4 +7,5 @@ enum AflRequestType
     case Live;
     case Schedules;
     case Standings;
+    case Record;
 }

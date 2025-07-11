@@ -32,14 +32,15 @@ class AflService
      *
      * @return array<string, string<json>>
      */
-    public function getApiLiveData(string $query = null): array
+    public function getApiLiveData(?string $query): array
     {
         $uri = AflApiResponse::URI_LIVE;
         if (!$this->api instanceof ApiInterface) {
             return [];
         }
 
-        $response = $this->api->get()->uri($uri . (!is_null($query) ? "&" . $query : ''))->send();
+        $uri = $uri . ($query !== '' ? "&" . $query : '');
+        $response = $this->api->get()->uri($uri)->send();
 
         return [
             'response_code' => $response->getResponse()->getStatusCode(),

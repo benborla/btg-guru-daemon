@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Afl\AflService;
 use Illuminate\Http\JsonResponse;
 use App\Models\AflApiResponse;
+use App\Models\AflSchedule;
 
 class AflController extends Controller
 {
@@ -56,103 +57,173 @@ class AflController extends Controller
 
     /**
      * Get formatted schedule data in the requested format
+     * Handles both current round (from live data) and historical rounds
      *
      * @return JsonResponse
      */
     public function schedules(): JsonResponse
     {
         $currentRound = get_current_round()['round'];
-        $scheduleData = $this->aflService->getUpcomingSchedules();
-        // dd($this->aflService->getScoreboard(), $scheduleData);
-        $round = request()->get('round') ?: $currentRound;
+        $round = request()->get('round') == 0 ? 'OR' : request()->get('round');
+        $formattedSchedules = [];
 
-        if ($round != $currentRound) {
-            $scheduleData = $this->aflService->getScheduleByRound($round);
-        }
+        // If we are fetching the current round, get data from the live source
+        if ($round == $currentRound) {
+            $liveResponse = AflApiResponse::getLatestData();
 
-        if ($scheduleData->isEmpty()) {
-            return response()->json([]);
-        }
+            if ($liveResponse && !empty($liveResponse->response)) {
+                // Format live matches directly from the response
+                $formattedSchedules = $this->formatLiveMatches($liveResponse->response);
 
-        $formattedSchedules = $scheduleData
-            ->map(function ($match) {
-                return [
-                    'category' => 'AFL Premiership',
-                    'week' => (string)$match['round'],
-                    'match_id' => $match['match_id'],
-                    'status' => $match['status'],
-                    'date' => $match['date'],
-                    'time' => $match['time'],
-                    'venue' => $match['venue'],
-                    'localteam' => [
-                        'id' => $this->getTeamId($match['home_team']),
-                        'name' => $match['home_team'],
-                        'score' => (string)($match['home_score'] ?? '0'),
-                        'goals' => '0',
-                        'behinds' => '0'
-                    ],
-                    'visitorteam' => [
-                        'id' => $this->getTeamId($match['away_team']),
-                        'name' => $match['away_team'],
-                        'score' => (string)($match['away_score'] ?? '0'),
-                        'goals' => '0',
-                        'behinds' => '0'
-                    ],
-                    'quarters' => null,
-                    'events' => null,
-                    'lineups' => []
-                ];
-            })
-            ->sortBy(function ($match) {
-                // Convert dd.mm.YYYY to a sortable format
-                $dateParts = explode('.', $match['date']);
-                if (count($dateParts) === 3) {
-                    return $dateParts[2] . '-' . $dateParts[1] . '-' . $dateParts[0] . ' ' . $match['time'];
+                // If we successfully formatted matches, return them
+                if (!empty($formattedSchedules)) {
+                    return response()->json([
+                        'live_match_available' => has_match_today(),
+                        'current_round' => $currentRound,
+                        'round' => $round,
+                        'data' => $formattedSchedules
+                    ]);
                 }
-                return $match['date'];
-            })
-            ->values()
-            ->all();
+            }
+        }
+
+        // If we don't have live data or we're looking for a different round,
+        // fetch from the database
+        if (empty($formattedSchedules)) {
+            $scheduleData = AflSchedule::byRound($round)->get();
+
+            if ($scheduleData->isEmpty()) {
+                return response()->json([
+                    'round' => $round,
+                    'data' => []
+                ]);
+            }
+
+            // Sort the schedule data by date and time using the model's static method
+            $sortedScheduleData = AflSchedule::sortByDateTime($scheduleData);
+
+            $formattedSchedules = $sortedScheduleData
+                ->map(function ($match) {
+                    // Extract team data from the JSON structure
+                    $localTeam = $match->local_team;
+                    $visitorTeam = $match->visitor_team;
+
+                    // Get the base data directly from the model
+                    $baseData = [
+                        'category' => 'AFL Premiership',
+                        'week' => (string)$match->round,
+                        'match_id' => $match->match_id,
+                        'status' => $match->status,
+                        'date' => $match->date,
+                        'time' => $match->time,
+                        'venue' => $match->venue,
+                    ];
+
+                    // Add team data
+                    return [
+                        ...$baseData,
+                        'localteam' => $localTeam,
+                        'visitorteam' => $visitorTeam,
+                        'quarters' => null,
+                        'events' => null,
+                        'lineups' => []
+                    ];
+                })
+                ->values()
+                ->all();
+        }
 
         return response()->json([
+            'live_match_available' => has_match_today(),
+            'current_round' => $currentRound,
             'round' => $round,
             'data' => $formattedSchedules
         ]);
     }
 
     /**
-     * Helper method to generate a consistent team ID
-     * 
-     * @param string $teamName
-     * @return string
+     * Format live matches from the API response
+     *
+     * @param array $liveData
+     * @return array
      */
-    private function getTeamId(string $teamName): string
+    private function formatLiveMatches($liveData): array
     {
-        // This is a simple mapping function to generate consistent IDs
-        // In a real implementation, you would fetch this from your database
-        $teamMap = [
-            'Gold Coast Suns' => '1033',
-            'Collingwood Magpies' => '1043',
-            'Western Bulldogs' => '1019',
-            'Adelaide Crows' => '1038',
-            'Greater Western Sydney Giants' => '1132',
-            'Geelong Cats' => '1017',
-            'Richmond Tigers' => '1041',
-            'Essendon Bombers' => '1048',
-            'Fremantle Dockers' => '1047',
-            'Hawthorn Hawks' => '1045',
-            'Melbourne Demons' => '1049',
-            'North Melbourne Kangaroos' => '1050',
-            'St Kilda Saints' => '1042',
-            'Sydney Swans' => '1037',
-            'Port Adelaide Power' => '1044',
-            'West Coast Eagles' => '1031',
-            'Brisbane Lions' => '1032',
-            'Carlton Blues' => '1040'
-        ];
+        // Check if we have the expected structure
+        if (!isset($liveData['scores']['category']['match'])) {
+            return [];
+        }
 
-        return $teamMap[$teamName] ?? '1000'; // Default ID if team not found
+        // Get matches array, ensuring it's always an array even if there's only one match
+        $matches = $liveData['scores']['category']['match'];
+        if (!isset($matches[0])) {
+            $matches = [$matches]; // Wrap single match in array
+        }
+
+        // Format each match
+        $formattedMatches = [];
+        foreach ($matches as $match) {
+            // Extract attributes with @ prefix
+            $matchId = $match['@id'] ?? '';
+            $status = $match['@status'] ?? 'NS';
+            $date = $match['@date'] ?? '';
+            $time = $match['@time'] ?? '';
+            $venue = $match['@venue'] ?? '';
+            $week = $liveData['scores']['category']['@week'] ?? '';
+
+            // Extract team data
+            $localTeam = [];
+            if (isset($match['localteam'])) {
+                $localTeam = [
+                    'name' => $match['localteam']['@name'] ?? '',
+                    'id' => $match['localteam']['@id'] ?? '',
+                    'score' => (string)($match['localteam']['@score'] ?? '0'),
+                    'goals' => (string)($match['localteam']['@goals'] ?? '0'),
+                    'behinds' => (string)($match['localteam']['@behinds'] ?? '0')
+                ];
+            }
+
+            $visitorTeam = [];
+            if (isset($match['visitorteam'])) {
+                $visitorTeam = [
+                    'name' => $match['visitorteam']['@name'] ?? '',
+                    'id' => $match['visitorteam']['@id'] ?? '',
+                    'score' => (string)($match['visitorteam']['@score'] ?? '0'),
+                    'goals' => (string)($match['visitorteam']['@goals'] ?? '0'),
+                    'behinds' => (string)($match['visitorteam']['@behinds'] ?? '0')
+                ];
+            }
+
+            // Extract quarters and events if available
+            $quarters = isset($match['quarters']) ? $match['quarters'] : null;
+            $events = isset($match['events']) ? $match['events'] : null;
+            $lineups = isset($match['lineups']) ? $match['lineups'] : [];
+
+            // Base match data
+            $baseData = [
+                'category' => 'AFL Premiership',
+                'week' => (string)$week,
+                'match_id' => $matchId,
+                'status' => $status,
+                'date' => $date,
+                'time' => $time,
+                'venue' => $venue,
+            ];
+
+            // Add to formatted matches
+            $formattedMatches[] = [
+                ...$baseData,
+                'localteam' => $localTeam,
+                'visitorteam' => $visitorTeam,
+                'quarters' => $quarters,
+                'events' => $events,
+                'lineups' => $lineups
+            ];
+        }
+
+        return $formattedMatches;
     }
+
 
     /**
      * Undocumented function

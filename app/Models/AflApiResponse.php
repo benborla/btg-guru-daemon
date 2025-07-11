@@ -62,7 +62,8 @@ class AflApiResponse extends Model
 
     public function scopeGetLatestSchedule($query)
     {
-        return $this->scopeGetDataBy($query, self::URI_SCHEDULE, AflRequestType::Schedules->name);
+        return $query->where('request_type', AflRequestType::Schedules->name)
+            ->orderBy('updated_at', 'desc');
     }
 
     public function scopeGetLatestStandings($query)
