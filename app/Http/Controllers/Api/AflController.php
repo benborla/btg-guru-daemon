@@ -63,13 +63,11 @@ class AflController extends Controller
     {
         $currentRound = get_current_round()['round'];
         $scheduleData = $this->aflService->getUpcomingSchedules();
-        $round = (int) request()->get('round') ?: $currentRound;
+        // dd($this->aflService->getScoreboard(), $scheduleData);
+        $round = request()->get('round') ?: $currentRound;
 
-        if ($round !== $currentRound) {
-            return response()->json([
-                'round' => $round,
-                'status' => 'OK'
-            ]);
+        if ($round != $currentRound) {
+            $scheduleData = $this->aflService->getScheduleByRound($round);
         }
 
         if ($scheduleData->isEmpty()) {
@@ -174,5 +172,11 @@ class AflController extends Controller
     public function liveMatchDataFeed(): JsonResponse
     {
         return response()->json($this->aflService->getCurrentMatchData());
+    }
+
+    public function liveTest()
+    {
+        dd(iterate_through_current_round_until_start());
+        dd('test');
     }
 }

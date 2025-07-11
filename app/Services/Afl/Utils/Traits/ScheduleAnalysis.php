@@ -24,6 +24,23 @@ trait ScheduleAnalysis
         return $this->getUpcomingMatches($scheduleData->response);
     }
 
+    public function getScheduleByRound(string $round)
+    {
+        $scheduleData = AflApiResponse::query()->getScheduleByRound($round);
+
+        if (!$scheduleData || empty($scheduleData->response)) {
+            return collect();
+        }
+        
+        if ($round == get_current_round()['round']) {
+            return $this->getUpcomingMatches($scheduleData->response);
+        }
+
+        // @INFO: Load the previous matches
+        dd($scheduleData->response);
+
+    }
+
     /**
      * Get upcoming matches from schedule data
      * 

@@ -34,19 +34,6 @@ class AflApiResponse extends Model
         'round' => 'integer',
     ];
 
-    protected static function booted()
-    {
-        static::creating(function ($model) {
-            $model->round = get_current_round()['round'];
-            $model->match_date = get_current_round()['start'];
-        });
-
-        static::updating(function ($model) {
-            $model->round = get_current_round()['round'];
-            $model->match_date = get_current_round()['start'];
-        });
-    }
-
     public function scopeGetDataBy($query, string $uri, string $requestType)
     {
         return $query->where('uri', $uri)
@@ -55,9 +42,9 @@ class AflApiResponse extends Model
             ->first();
     }
 
-    public function scopeGetLatestRoundSchedule($query, string $round = null)
+    public function scopeGetRoundSchedule($query, string $round = null)
     {
-        $round = $round || get_current_round()['round'];
+        $round = $round ?? get_current_round()['round'];
         return $query->where('round', $round)
             ->orderBy('updated_at', 'desc')
             ->first();
@@ -65,7 +52,7 @@ class AflApiResponse extends Model
 
     public function scopeGetScheduleByRound($query, string $round)
     {
-
+        return $this->scopeGetRoundSchedule($query, $round);
     }
 
     public function scopeGetLatestData($query)

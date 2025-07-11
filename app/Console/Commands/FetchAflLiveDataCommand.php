@@ -71,6 +71,8 @@ class FetchAflLiveDataCommand extends Command
             'response_code' => $data['response_code'],
             'response_time' => round($responseTime),
             'request_id' => Str::uuid(),
+            'round' => get_current_round()['round'],
+            'match_date' => get_current_round()['start'],
         ]);
 
         // Create a fresh service instance

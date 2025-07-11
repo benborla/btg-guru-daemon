@@ -17,7 +17,14 @@ class AflService
         private Analyzer $analyzer
     ) {
         $this->api = new ApiDriverHandler($driver);
-        $this->hydrate();
+        try {
+            $this->hydrate();
+        } catch (\Exception $e) {
+            // usually this happens when running migration
+            // just ignore for now
+            // but i need to work on a different approach so we can avoid this
+            // if you're still seeing this, it means that it's still not fixed :-)
+        }
     }
 
     /**
@@ -25,14 +32,14 @@ class AflService
      *
      * @return array<string, string<json>>
      */
-    public function getApiLiveData(): array
+    public function getApiLiveData(string $query = null): array
     {
         $uri = AflApiResponse::URI_LIVE;
         if (!$this->api instanceof ApiInterface) {
             return [];
         }
 
-        $response = $this->api->get()->uri($uri)->send();
+        $response = $this->api->get()->uri($uri . (!is_null($query) ? "&" . $query : ''))->send();
 
         return [
             'response_code' => $response->getResponse()->getStatusCode(),
@@ -40,6 +47,7 @@ class AflService
             'uri' => $uri
         ];
     }
+
 
     public function getApiSchedules(): array
     {
@@ -115,6 +123,11 @@ class AflService
     public function getUpcomingSchedules()
     {
         return $this->analyzer->getNextMatchSchedule();
+    }
+
+    public function getScheduleByRound(string $round)
+    {
+        return $this->analyzer->getScheduleByRound($round);
     }
 
     public function getCurrentMatchData(): array
