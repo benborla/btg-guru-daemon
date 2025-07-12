@@ -63,4 +63,9 @@ class AflApiResponse extends Model
             ->whereIn('request_type', ['Live', 'Record'])
             ->where('round', $round);
     }
+
+    public function scopeGetScoreSummary($query, string $round)
+    {
+        return $query->where('round', $round)->orderBy('upated_at', 'desc');
+    }
 }
