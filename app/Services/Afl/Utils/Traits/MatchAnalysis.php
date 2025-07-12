@@ -12,6 +12,10 @@ trait MatchAnalysis
             return null;
         }
 
+        if ($this->matches->count() === 1) {
+            return $this->restructureMatchData($this->matches->first());
+        }
+
         // Get current time in AEST timezone
         $now = now()->setTimezone('Australia/Sydney');
 

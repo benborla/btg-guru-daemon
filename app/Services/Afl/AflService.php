@@ -84,12 +84,12 @@ class AflService
         ];
     }
 
-    private function hydrate()
+    public function hydrate($data = [])
     {
-        $data = AflApiResponse::getLatestData();
+        $data = $data ?? AflApiResponse::getLatestData();
         $response = [];
 
-        if ($data->count()) {
+        if ($data) {
             $response = $data->response;
         }
 

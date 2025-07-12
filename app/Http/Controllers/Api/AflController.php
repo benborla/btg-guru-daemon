@@ -78,8 +78,9 @@ class AflController extends Controller
                 // If we successfully formatted matches, return them
                 if (!empty($formattedSchedules)) {
                     return response()->json([
-                        'live_match_available' => has_match_today(),
+                        'live_match_available' => has_live_match_ongoing(),
                         'current_round' => $currentRound,
+                        'next_match_countdown' => get_time_until_next_match(),
                         'round' => $round,
                         'data' => $formattedSchedules
                     ]);
@@ -134,8 +135,9 @@ class AflController extends Controller
         }
 
         return response()->json([
-            'live_match_available' => has_match_today(),
+            'live_match_available' => has_live_match_ongoing(),
             'current_round' => $currentRound,
+            'next_match_countdown' => get_time_until_next_match(),
             'round' => $round,
             'data' => $formattedSchedules
         ]);
@@ -235,6 +237,8 @@ class AflController extends Controller
         return response()->json([
             'request_id' => uniqid(),
             'has_live_game' => has_match_today(),
+            'is_live_match_ongoing' => has_live_match_ongoing(),
+            'next_match_countdown' => get_time_until_next_match(),
             'upcoming_match_schedule' => get_schedule_by_round(get_current_round()['round'])
 
         ]);
@@ -243,6 +247,20 @@ class AflController extends Controller
     public function liveMatchDataFeed(): JsonResponse
     {
         return response()->json($this->aflService->getCurrentMatchData());
+    }
+
+    public function getMatchData(string $round, string $matchId): JsonResponse
+    {
+        $data = AflApiResponse::findByMatchData($matchId, $round)->first();
+        $this->aflService->hydrate($data);
+        $structured = $this->aflService->getCurrentMatchData();
+
+        return response()->json([
+            'match_date' => $data->match_date,
+            'source' => 'proxy_server',
+            'round' => $data->round,
+            ...$structured
+        ]);
     }
 
     public function liveTest()

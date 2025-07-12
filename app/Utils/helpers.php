@@ -146,11 +146,13 @@ if (!function_exists('has_live_match_ongoing')) {
 
         // Get current date and time
         $now = Carbon::now();
-        $currentDate = $now->format('Y-m-d');
+        
+        // Format current date in dd.mm.YYYY format to match database format
+        $currentDate = $now->format('d.m.Y');
 
         // First check for matches in the current round from the database
         $todayMatches = \App\Models\AflSchedule::byRound($currentRound['round'])
-            ->whereDate('date', $currentDate)
+            ->where('date', $currentDate)
             ->get();
 
         if ($todayMatches->isNotEmpty()) {
@@ -194,6 +196,152 @@ if (!function_exists('has_live_match_ongoing')) {
         }
 
         return false;
+    }
+}
+
+if (!function_exists('get_time_until_next_match')) {
+    /**
+     * Get the time until the next AFL match
+     * 
+     * @return array|null Returns an array with 'hours' and 'minutes' until next match, or null if no upcoming match found
+     */
+    function get_time_until_next_match()
+    {
+        $currentRound = get_current_round();
+
+        if (empty($currentRound)) {
+            return null;
+        }
+
+        $now = Carbon::now();
+        $nextMatch = null;
+
+        // First check today's matches in the current round
+        // Format current date in dd.mm.YYYY format to match database format
+        $currentDate = $now->format('d.m.Y');
+        $todayMatches = \App\Models\AflSchedule::byRound($currentRound['round'])
+            ->where('date', $currentDate)
+            ->get();
+
+        // Find the next match today that hasn't started yet
+        foreach ($todayMatches as $match) {
+            $matchTime = Carbon::parse($match->date . ' ' . $match->time);
+
+            if ($matchTime->gt($now)) {
+                if ($nextMatch === null || $matchTime->lt(Carbon::parse($nextMatch->date . ' ' . $nextMatch->time))) {
+                    $nextMatch = $match;
+                }
+            }
+        }
+
+        // If no match found today, look for future matches in the current round
+        if ($nextMatch === null) {
+            // We need a custom approach since the dates are in dd.mm.YYYY format
+            // Get all matches for the current round
+            $allMatches = \App\Models\AflSchedule::byRound($currentRound['round'])->get();
+            
+            // Filter for future matches by parsing the dates
+            $futureMatches = $allMatches->filter(function($match) use ($now) {
+                // Convert dd.mm.YYYY to Carbon date for comparison
+                $dateParts = explode('.', $match->date);
+                if (count($dateParts) === 3) {
+                    $matchDate = Carbon::createFromFormat('d.m.Y H:i', 
+                        $dateParts[0] . '.' . $dateParts[1] . '.' . $dateParts[2] . ' ' . $match->time);
+                    return $matchDate->gt($now);
+                }
+                return false;
+            })->sortBy(function($match) {
+                // Sort by parsed date and time
+                $dateParts = explode('.', $match->date);
+                return $dateParts[2] . '-' . $dateParts[1] . '-' . $dateParts[0] . ' ' . $match->time;
+            })->first();
+
+            if ($futureMatches) {
+                $nextMatch = $futureMatches;
+            }
+        }
+
+        // If still no match found, check the live API response for upcoming matches
+        if ($nextMatch === null) {
+            $liveResponse = \App\Models\AflApiResponse::getLatestData();
+
+            if ($liveResponse && !empty($liveResponse->response)) {
+                $liveData = $liveResponse->response;
+
+                // Check if we have the expected structure
+                if (isset($liveData['scores']['category']['match'])) {
+                    $matches = $liveData['scores']['category']['match'];
+                    if (!isset($matches[0])) {
+                        $matches = [$matches]; // Wrap single match in array
+                    }
+
+                    $earliestUpcomingMatch = null;
+                    $earliestMatchTime = null;
+
+                    foreach ($matches as $match) {
+                        $status = $match['@status'] ?? '';
+                        $date = $match['@date'] ?? '';
+                        $time = $match['@time'] ?? '';
+
+                        // Only consider matches that haven't started yet
+                        if ($status === 'NS' || $status === 'Not Started') {
+                            // Convert dd.mm.YYYY format to YYYY-mm-dd
+                            if (strpos($date, '.') !== false) {
+                                $dateParts = explode('.', $date);
+                                if (count($dateParts) === 3) {
+                                    $formattedDate = $dateParts[2] . '-' . $dateParts[1] . '-' . $dateParts[0];
+
+                                    try {
+                                        $matchTime = Carbon::parse($formattedDate . ' ' . $time);
+
+                                        if ($matchTime->gt($now)) {
+                                            if ($earliestMatchTime === null || $matchTime->lt($earliestMatchTime)) {
+                                                $earliestUpcomingMatch = $match;
+                                                $earliestMatchTime = $matchTime;
+                                            }
+                                        }
+                                    } catch (\Exception $e) {
+                                        // Skip this match if date parsing fails
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // If we found an upcoming match in the live data
+                    if ($earliestMatchTime !== null) {
+                        $diffInMinutes = $now->diffInMinutes($earliestMatchTime, false);
+                        $hours = floor($diffInMinutes / 60);
+                        $minutes = $diffInMinutes % 60;
+
+                        return [
+                            'hours' => $hours,
+                            'minutes' => $minutes,
+                            'match_time' => $earliestMatchTime->format('Y-m-d H:i:s'),
+                            'source' => 'live_api'
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Calculate time difference if we found a next match
+        if ($nextMatch !== null) {
+            $matchTime = Carbon::parse($nextMatch->date . ' ' . $nextMatch->time);
+            $diffInMinutes = $now->diffInMinutes($matchTime, false);
+            $hours = floor($diffInMinutes / 60);
+            $minutes = $diffInMinutes % 60;
+
+            return [
+                'hours' => $hours,
+                'minutes' => $minutes,
+                'match_time' => $matchTime->format('Y-m-d H:i:s'),
+                'source' => 'database'
+            ];
+        }
+
+        return null;
     }
 }
 
