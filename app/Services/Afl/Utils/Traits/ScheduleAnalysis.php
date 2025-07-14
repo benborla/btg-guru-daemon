@@ -15,7 +15,7 @@ trait ScheduleAnalysis
      */
     public function getNextMatchSchedule(): Collection
     {
-        $scheduleData = AflApiResponse::query()->getLatestSchedule();
+        $scheduleData = AflApiResponse::query()->getLatestSchedule()->first();
 
         if (!$scheduleData || empty($scheduleData->response)) {
             return collect();
@@ -31,14 +31,13 @@ trait ScheduleAnalysis
         if (!$scheduleData || empty($scheduleData->response)) {
             return collect();
         }
-        
+
         if ($round == get_current_round()['round']) {
             return $this->getUpcomingMatches($scheduleData->response);
         }
 
         // @INFO: Load the previous matches
         dd($scheduleData->response);
-
     }
 
     /**

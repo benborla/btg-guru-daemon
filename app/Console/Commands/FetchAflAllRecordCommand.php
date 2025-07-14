@@ -20,7 +20,7 @@ class FetchAflAllRecordCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'api:afl:all';
+    protected $signature = 'api:afl:all {--yes : Skip confirmation prompt}';
 
     /**
      * The command description.
@@ -47,7 +47,9 @@ class FetchAflAllRecordCommand extends Command
         $this->info('Fetching ALL AFL data starting from Opening Round to the current round from GoalServe API...');
         $this->info('');
         $this->warn('This command will truncate the AFL API responses table');
-        if (!$this->confirm('Do you want to proceed?')) {
+        
+        // Skip confirmation if --yes option is provided
+        if (!$this->option('yes') && !$this->confirm('Do you want to proceed?')) {
             return Command::FAILURE;
         }
         AflApiResponse::truncate();
@@ -105,8 +107,10 @@ class FetchAflAllRecordCommand extends Command
 
         // Call again the schedules and standings
         $this->info('Fetching schedules and standings...');
+        $this->call('api:afl');
         $this->call('api:afl:schedules');
         $this->call('api:afl:standings');
+        $this->call('afl:schedule');
 
         return Command::SUCCESS;
     }

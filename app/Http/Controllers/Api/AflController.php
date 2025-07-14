@@ -68,25 +68,26 @@ class AflController extends Controller
         $formattedSchedules = [];
 
         // If we are fetching the current round, get data from the live source
-        if ($round == $currentRound) {
-            $liveResponse = AflApiResponse::getLatestData();
+        // if ($round == $currentRound) {
+        //     $liveResponse = AflApiResponse::getLatestData();
 
-            if ($liveResponse && !empty($liveResponse->response)) {
-                // Format live matches directly from the response
-                $formattedSchedules = $this->formatLiveMatches($liveResponse->response);
+        //     if ($liveResponse && !empty($liveResponse->response)) {
+        //         // Format live matches directly from the response
+        //         $formattedSchedules = $this->formatLiveMatches($liveResponse->response);
+        //         dd($formattedSchedules);
 
-                // If we successfully formatted matches, return them
-                if (!empty($formattedSchedules)) {
-                    return response()->json([
-                        'live_match_available' => has_live_match_ongoing(),
-                        'current_round' => $currentRound,
-                        'next_match_countdown' => get_time_until_next_match(),
-                        'round' => $round,
-                        'data' => $formattedSchedules
-                    ]);
-                }
-            }
-        }
+        //         // If we successfully formatted matches, return them
+        //         if (!empty($formattedSchedules)) {
+        //             return response()->json([
+        //                 'live_match_available' => has_live_match_ongoing(),
+        //                 'current_round' => $currentRound,
+        //                 'next_match_countdown' => get_time_until_next_match(),
+        //                 'round' => $round,
+        //                 'data' => $formattedSchedules
+        //             ]);
+        //         }
+        //     }
+        // }
 
         // If we don't have live data or we're looking for a different round,
         // fetch from the database
@@ -261,6 +262,11 @@ class AflController extends Controller
             'round' => $data->round,
             ...$structured
         ]);
+    }
+
+    public function scoreSummary(string $round)
+    {
+        // return $this->aflService->getScoreSummary($round);
     }
 
     public function liveTest()

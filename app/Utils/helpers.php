@@ -89,7 +89,30 @@ if (!function_exists('get_round_date')) {
 if (!function_exists('get_current_round')) {
     function get_current_round(): array
     {
-        return get_round_date(Carbon::now());
+        // Get the next upcoming round instead of the current round
+        $now = Carbon::now();
+        $rounds = get_schedules();
+        
+        $nextRound = null;
+        $nextRoundDiff = null;
+        
+        foreach ($rounds as $round) {
+            $roundStart = Carbon::parse($round['start']);
+            
+            // If the round start is in the future, it's a candidate for next round
+            if ($now->lt($roundStart)) {
+                $diff = $now->diffInSeconds($roundStart);
+                
+                // If we haven't found a next round yet, or this one is sooner
+                if ($nextRound === null || $diff < $nextRoundDiff) {
+                    $nextRound = $round;
+                    $nextRoundDiff = $diff;
+                }
+            }
+        }
+        
+        // Return the next upcoming round, or empty array if no future rounds
+        return $nextRound !== null ? $nextRound : [];
     }
 }
 

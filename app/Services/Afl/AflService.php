@@ -131,12 +131,12 @@ class AflService
         return $this->analyzer->getScheduleByRound($round);
     }
 
-    public function getCurrentMatchData(): array
+    public function getCurrentMatchData(): array|null
     {
         return $this->analyzer->getCurrentMatchData();
     }
 
-    public function getPreviousMatchData(): array
+    public function getPreviousMatchData(): array|null
     {
         return $this->analyzer->getPreviousMatchData();
     }
