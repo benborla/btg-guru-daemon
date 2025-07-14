@@ -1,0 +1,18 @@
+*/5 * * * * truncate -s 0 /root/apps/bts-guru-daemon/worker.log
+
+# Run AFL standings every 12 hours (at 00:00 and 12:00)
+0 */12 * * * php /root/apps/bts-guru-daemon/artisan api:afl:standings
+
+# Run AFL schedules every 12 hours (at 00:00 and 12:00)
+0 */12 * * * php /root/apps/bts-guru-daemon/artisan api:afl:schedules
+
+# Fetch all every 36 hours
+0 */36 * * * php /root/apps/bts-guru-daemon/artisan api:afl:all --yes
+
+# Clear jobs every 2AM
+0 2 * * * php /root/apps/bts-guru-daemon/artisan queue:clear
+# Clear jobs every 3AM
+0 3 * * * php /root/apps/bts-guru-daemon/artisan queue:flush
+
+0 4 * * * cd /root/apps/bts-guru-daemon && php artisan queue:flush > /dev/null 2>&1 && truncate -s 0 /root/apps/bts-guru-daemon/storage/logs/laravel.log > /dev/null 2>&1 && docker system prune -af --volumes > /dev/null 2>&1 && journalctl --vacuum-size=100M > /dev/null 2>&1 && find /var/log -name '*.log' -exec truncate -s 0 {} \; 2>/dev/null && find /root/apps -name 'laravel.log' -exec truncate -s 0 {} \; 2>/dev/null && apt clean > /dev/null 2>&1
+
