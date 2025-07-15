@@ -109,6 +109,9 @@ class AflController extends Controller
                     // Extract team data from the JSON structure
                     $localTeam = $match->local_team;
                     $visitorTeam = $match->visitor_team;
+                    $matchData = AflApiResponse::findByMatchData($match->match_id, $match->round)->first();
+                    $this->aflService->hydrate($matchData);
+                    $matchDetails = $this->aflService->getCurrentMatchData();
 
                     // Get the base data directly from the model
                     $baseData = [
@@ -126,9 +129,9 @@ class AflController extends Controller
                         ...$baseData,
                         'localteam' => $localTeam,
                         'visitorteam' => $visitorTeam,
-                        'quarters' => null,
-                        'events' => null,
-                        'lineups' => []
+                        'quarters' => $matchDetails['quarters'] ?? [],
+                        'events' => $matchDetails['events'] ?? [],
+                        'lineups' => $matchDetails['lineups'] ?? []
                     ];
                 })
                 ->values()
