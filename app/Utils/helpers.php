@@ -47,8 +47,8 @@ if (!function_exists('get_round_date')) {
         $previousRound = null;
 
         foreach ($rounds as $key => $round) {
-            $roundStart = Carbon::parse($round['start']);
-            $roundEnd = Carbon::parse($round['end']);
+            $roundStart = Carbon::parse($round['start'], 'Australia/Sydney');
+            $roundEnd = Carbon::parse($round['end'], 'Australia/Sydney');
 
             // Check if today is within this round's date range
             if ($date->isBetween($roundStart, $roundEnd)) {
@@ -90,14 +90,14 @@ if (!function_exists('get_current_round')) {
     function get_current_round(): array
     {
         // Get the next upcoming round instead of the current round
-        $now = Carbon::now();
+        $now = Carbon::now('Australia/Sydney');
         $rounds = get_schedules();
         
         $nextRound = null;
         $nextRoundDiff = null;
         
         foreach ($rounds as $round) {
-            $roundStart = Carbon::parse($round['start']);
+            $roundStart = Carbon::parse($round['start'], 'Australia/Sydney');
             
             // If the round start is in the future, it's a candidate for next round
             if ($now->lt($roundStart)) {
@@ -143,7 +143,7 @@ if (!function_exists('has_match_today')) {
     function has_match_today(): bool
     {
         $round = get_current_round();
-        $today = Carbon::now();
+        $today = Carbon::now('Australia/Sydney');
 
         // If we don't have a round, there's definitely no match today
         if (empty($round)) {
@@ -151,8 +151,8 @@ if (!function_exists('has_match_today')) {
         }
 
         // Check if today's date is within the round's date range
-        $roundStart = Carbon::parse($round['start']);
-        $roundEnd = Carbon::parse($round['end']);
+        $roundStart = Carbon::parse($round['start'], 'Australia/Sydney');
+        $roundEnd = Carbon::parse($round['end'], 'Australia/Sydney');
 
         return $today->isBetween($roundStart, $roundEnd);
     }
@@ -168,7 +168,7 @@ if (!function_exists('has_live_match_ongoing')) {
         }
 
         // Get current date and time
-        $now = Carbon::now();
+        $now = Carbon::now('Australia/Sydney');
         
         // Format current date in dd.mm.YYYY format to match database format
         $currentDate = $now->format('d.m.Y');
@@ -182,7 +182,7 @@ if (!function_exists('has_live_match_ongoing')) {
             // Check if any match is currently in progress based on time
             foreach ($todayMatches as $match) {
                 // Parse match time and add estimated duration (3 hours for AFL match)
-                $matchTime = Carbon::parse($match->date . ' ' . $match->time);
+                $matchTime = Carbon::parse($match->date . ' ' . $match->time, 'Australia/Sydney');
                 $matchEndTime = (clone $matchTime)->addHours(3); // Typical AFL match duration
 
                 // Check if current time is between match start and end time
@@ -236,7 +236,7 @@ if (!function_exists('get_time_until_next_match')) {
             return null;
         }
 
-        $now = Carbon::now();
+        $now = Carbon::now('Australia/Sydney');
         $nextMatch = null;
 
         // First check today's matches in the current round
@@ -248,10 +248,10 @@ if (!function_exists('get_time_until_next_match')) {
 
         // Find the next match today that hasn't started yet
         foreach ($todayMatches as $match) {
-            $matchTime = Carbon::parse($match->date . ' ' . $match->time);
+            $matchTime = Carbon::parse($match->date . ' ' . $match->time, 'Australia/Sydney');
 
             if ($matchTime->gt($now)) {
-                if ($nextMatch === null || $matchTime->lt(Carbon::parse($nextMatch->date . ' ' . $nextMatch->time))) {
+                if ($nextMatch === null || $matchTime->lt(Carbon::parse($nextMatch->date . ' ' . $nextMatch->time, 'Australia/Sydney'))) {
                     $nextMatch = $match;
                 }
             }
@@ -269,7 +269,7 @@ if (!function_exists('get_time_until_next_match')) {
                 $dateParts = explode('.', $match->date);
                 if (count($dateParts) === 3) {
                     $matchDate = Carbon::createFromFormat('d.m.Y H:i', 
-                        $dateParts[0] . '.' . $dateParts[1] . '.' . $dateParts[2] . ' ' . $match->time);
+                        $dateParts[0] . '.' . $dateParts[1] . '.' . $dateParts[2] . ' ' . $match->time, 'Australia/Sydney');
                     return $matchDate->gt($now);
                 }
                 return false;
@@ -315,7 +315,7 @@ if (!function_exists('get_time_until_next_match')) {
                                     $formattedDate = $dateParts[2] . '-' . $dateParts[1] . '-' . $dateParts[0];
 
                                     try {
-                                        $matchTime = Carbon::parse($formattedDate . ' ' . $time);
+                                        $matchTime = Carbon::parse($formattedDate . ' ' . $time, 'Australia/Sydney');
 
                                         if ($matchTime->gt($now)) {
                                             if ($earliestMatchTime === null || $matchTime->lt($earliestMatchTime)) {
@@ -351,7 +351,7 @@ if (!function_exists('get_time_until_next_match')) {
 
         // Calculate time difference if we found a next match
         if ($nextMatch !== null) {
-            $matchTime = Carbon::parse($nextMatch->date . ' ' . $nextMatch->time);
+            $matchTime = Carbon::parse($nextMatch->date . ' ' . $nextMatch->time, 'Australia/Sydney');
             $diffInMinutes = $now->diffInMinutes($matchTime, false);
             $hours = floor($diffInMinutes / 60);
             $minutes = $diffInMinutes % 60;

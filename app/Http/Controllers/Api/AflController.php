@@ -256,6 +256,8 @@ class AflController extends Controller
     public function getMatchData(string $round, string $matchId): JsonResponse
     {
         $data = AflApiResponse::findByMatchData($matchId, $round)->first();
+        abort_if(!$data, 404, 'Match not found');
+
         $this->aflService->hydrate($data);
         $structured = $this->aflService->getCurrentMatchData();
 
