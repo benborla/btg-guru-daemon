@@ -22,7 +22,10 @@ Route::get('/test', function (\App\Services\Afl\AflService $service) {
 });
 
 Route::get('/test-schedule', function (\App\Services\Afl\Utils\Analyzer $analyzer) {
-    return $analyzer->getNextMatchSchedule();
+    // dd(get_current_round());
+    // return $analyzer->getNextMatchSchedule();
+    $analyzer->hydrate($analyzer->getPreviousMatchData());
+    dd($analyzer->getTeamScores());
 });
 
 Route::view('dashboard', 'dashboard')

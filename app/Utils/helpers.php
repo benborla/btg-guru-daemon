@@ -89,10 +89,22 @@ if (!function_exists('get_round_date')) {
 if (!function_exists('get_current_round')) {
     function get_current_round(): array
     {
-        // Get the next upcoming round instead of the current round
+        // Get the current round based on today's date
         $now = Carbon::now('Australia/Sydney');
         $rounds = get_schedules();
         
+        // First check if today falls within any round's date range
+        foreach ($rounds as $round) {
+            $roundStart = Carbon::parse($round['start'], 'Australia/Sydney');
+            $roundEnd = Carbon::parse($round['end'], 'Australia/Sydney');
+            
+            // If today is within this round's date range, this is the current round
+            if ($now->between($roundStart, $roundEnd)) {
+                return $round;
+            }
+        }
+        
+        // If we're not within any round's date range, find the next upcoming round
         $nextRound = null;
         $nextRoundDiff = null;
         

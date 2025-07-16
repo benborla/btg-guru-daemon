@@ -64,7 +64,7 @@ class AflGetLiveMatch implements ShouldBroadcast
      *
      * @return array
      */
-    public function broadcastWith(): array
+    public function broadcastWith(): array|null
     {
         $matchData = [];
         // If we have fresh response data, use it to hydrate the analyzer

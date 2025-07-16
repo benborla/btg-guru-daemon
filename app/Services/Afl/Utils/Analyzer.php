@@ -18,6 +18,7 @@ class Analyzer
     protected Collection $matches;
     protected array $rawData;
     private bool $hasHydrated;
+    protected $weekRound;
 
 
     public function hydrate(array $apiResponse)
@@ -42,6 +43,7 @@ class Analyzer
         // Handle both single match and multiple matches
         if (isset($response['scores']['category']['match'])) {
             $matchData = $response['scores']['category']['match'];
+            $this->weekRound = $response['scores']['category']['@week'];
 
             // If it's a single match, wrap it in an array
             if (isset($matchData['@id'])) {

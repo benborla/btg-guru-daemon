@@ -53,7 +53,7 @@ trait MatchAnalysis
 
     /**
      * Helper method to restructure match data consistently
-     * 
+     *
      * @param array $match The match data to restructure
      * @return array The restructured match data
      */
@@ -79,7 +79,7 @@ trait MatchAnalysis
 
     /**
      * Get the most recent completed match data
-     * 
+     *
      * @return array|null The previous match data or null if none found
      */
     public function getPreviousMatchData()
@@ -131,7 +131,7 @@ trait MatchAnalysis
 
     /**
      * Restructure events by period to make them more accessible
-     * 
+     *
      * @param array $events The original events array
      * @return array The restructured events array with period as keys
      */
@@ -157,7 +157,7 @@ trait MatchAnalysis
 
     /**
      * Restructure lineups to make them more accessible
-     * 
+     *
      * @param array $lineups The original lineups array
      * @return array The restructured lineups array with team types as keys
      */
@@ -183,7 +183,7 @@ trait MatchAnalysis
 
     /**
      * Restructure quarters data to make it more accessible and add additional information
-     * 
+     *
      * @param array $quarters The original quarters array
      * @param array $match The full match data containing team information
      * @return array The restructured quarters array
@@ -265,6 +265,9 @@ trait MatchAnalysis
                 'away_score' => $awayScore,
                 'total_score' => $homeScore + $awayScore,
                 'margin' => abs($homeScore - $awayScore),
+                // 'round' => $this->weekRound,
+                // @INFO: To immprove, this should be coming from the response data
+                'round' => get_current_round()['round'],
                 'winner' => $homeScore > $awayScore ? $match['localteam']['@name'] : $match['visitorteam']['@name'],
                 'home_goals' => (int) $match['localteam']['@goals'],
                 'home_behinds' => (int) $match['localteam']['@behinds'],
