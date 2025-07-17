@@ -67,76 +67,72 @@ class AflController extends Controller
         $round = request()->get('round') == 0 ? 'OR' : request()->get('round');
         $formattedSchedules = [];
 
-        // If we are fetching the current round, get data from the live source
-        // if ($round == $currentRound) {
-        //     $liveResponse = AflApiResponse::getLatestData();
+        if ($round == $currentRound) {
+            $liveResponse = AflApiResponse::getLatestData();
 
-        //     if ($liveResponse && !empty($liveResponse->response)) {
-        //         // Format live matches directly from the response
-        //         $formattedSchedules = $this->formatLiveMatches($liveResponse->response);
-        //         dd($formattedSchedules);
+            if ($liveResponse && !empty($liveResponse->response)) {
+                // Format live matches directly from the response
+                $formattedSchedules = format_live_matches($liveResponse->response);
 
-        //         // If we successfully formatted matches, return them
-        //         if (!empty($formattedSchedules)) {
-        //             return response()->json([
-        //                 'live_match_available' => has_live_match_ongoing(),
-        //                 'current_round' => $currentRound,
-        //                 'next_match_countdown' => get_time_until_next_match(),
-        //                 'round' => $round,
-        //                 'data' => $formattedSchedules
-        //             ]);
-        //         }
-        //     }
-        // }
+                // If we successfully formatted matches, return them
+                if (!empty($formattedSchedules)) {
+                    return response()->json([
+                        'live_match_available' => has_live_match_ongoing(),
+                        'current_round' => $currentRound,
+                        'next_match_countdown' => get_time_until_next_match(),
+                        'round' => $round,
+                        'data' => $formattedSchedules
+                    ]);
+                }
+            }
+        }
 
         // If we don't have live data or we're looking for a different round,
         // fetch from the database
-        if (empty($formattedSchedules)) {
-            $scheduleData = AflSchedule::byRound($round)->get();
+        $scheduleData = AflSchedule::byRound($round)->get();
 
-            if ($scheduleData->isEmpty()) {
-                return response()->json([
-                    'round' => $round,
-                    'data' => []
-                ]);
-            }
-
-            // Sort the schedule data by date and time using the model's static method
-            $sortedScheduleData = AflSchedule::sortByDateTime($scheduleData);
-
-            $formattedSchedules = $sortedScheduleData
-                ->map(function ($match) {
-                    // Extract team data from the JSON structure
-                    $localTeam = $match->local_team;
-                    $visitorTeam = $match->visitor_team;
-                    $matchData = AflApiResponse::findByMatchData($match->match_id, $match->round)->first();
-                    $this->aflService->hydrate($matchData);
-                    $matchDetails = $this->aflService->getCurrentMatchData();
-
-                    // Get the base data directly from the model
-                    $baseData = [
-                        'category' => 'AFL Premiership',
-                        'week' => (string)$match->round,
-                        'match_id' => $match->match_id,
-                        'status' => $match->status,
-                        'date' => $match->date,
-                        'time' => $match->time,
-                        'venue' => $match->venue,
-                    ];
-
-                    // Add team data
-                    return [
-                        ...$baseData,
-                        'localteam' => $localTeam,
-                        'visitorteam' => $visitorTeam,
-                        'quarters' => $matchDetails['quarters'] ?? [],
-                        'events' => $matchDetails['events'] ?? [],
-                        'lineups' => $matchDetails['lineups'] ?? []
-                    ];
-                })
-                ->values()
-                ->all();
+        if ($scheduleData->isEmpty()) {
+            return response()->json([
+                'round' => $round,
+                'data' => []
+            ]);
         }
+
+        // Sort the schedule data by date and time using the model's static method
+        $sortedScheduleData = AflSchedule::sortByDateTime($scheduleData);
+
+        $formattedSchedules = $sortedScheduleData
+            ->map(function ($match) {
+                // Extract team data from the JSON structure
+                $localTeam = $match->local_team;
+                $visitorTeam = $match->visitor_team;
+                $matchData = AflApiResponse::findByMatchData($match->match_id, $match->round)->first();
+                $this->aflService->hydrate($matchData);
+                $matchDetails = $this->aflService->getMatchDataById($match->match_id);
+
+                // Get the base data directly from the model
+                $baseData = [
+                    'category' => 'AFL Premiership',
+                    'week' => (string)$match->round,
+                    'match_id' => $match->match_id,
+                    'status' => $match->status,
+                    'date' => $match->date,
+                    'time' => $match->time,
+                    'venue' => $match->venue,
+                ];
+
+                // Add team data
+                return [
+                    ...$baseData,
+                    'localteam' => $localTeam,
+                    'visitorteam' => $visitorTeam,
+                    'quarters' => $matchDetails['quarters'] ?? [],
+                    'events' => $matchDetails['events'] ?? [],
+                    'lineups' => $matchDetails['lineups'] ?? []
+                ];
+            })
+            ->values()
+            ->all();
 
         return response()->json([
             'live_match_available' => has_live_match_ongoing(),
@@ -147,88 +143,7 @@ class AflController extends Controller
         ]);
     }
 
-    /**
-     * Format live matches from the API response
-     *
-     * @param array $liveData
-     * @return array
-     */
-    private function formatLiveMatches($liveData): array
-    {
-        // Check if we have the expected structure
-        if (!isset($liveData['scores']['category']['match'])) {
-            return [];
-        }
 
-        // Get matches array, ensuring it's always an array even if there's only one match
-        $matches = $liveData['scores']['category']['match'];
-        if (!isset($matches[0])) {
-            $matches = [$matches]; // Wrap single match in array
-        }
-
-        // Format each match
-        $formattedMatches = [];
-        foreach ($matches as $match) {
-            // Extract attributes with @ prefix
-            $matchId = $match['@id'] ?? '';
-            $status = $match['@status'] ?? 'NS';
-            $date = $match['@date'] ?? '';
-            $time = $match['@time'] ?? '';
-            $venue = $match['@venue'] ?? '';
-            $week = $liveData['scores']['category']['@week'] ?? '';
-
-            // Extract team data
-            $localTeam = [];
-            if (isset($match['localteam'])) {
-                $localTeam = [
-                    'name' => $match['localteam']['@name'] ?? '',
-                    'id' => $match['localteam']['@id'] ?? '',
-                    'score' => (string)($match['localteam']['@score'] ?? '0'),
-                    'goals' => (string)($match['localteam']['@goals'] ?? '0'),
-                    'behinds' => (string)($match['localteam']['@behinds'] ?? '0')
-                ];
-            }
-
-            $visitorTeam = [];
-            if (isset($match['visitorteam'])) {
-                $visitorTeam = [
-                    'name' => $match['visitorteam']['@name'] ?? '',
-                    'id' => $match['visitorteam']['@id'] ?? '',
-                    'score' => (string)($match['visitorteam']['@score'] ?? '0'),
-                    'goals' => (string)($match['visitorteam']['@goals'] ?? '0'),
-                    'behinds' => (string)($match['visitorteam']['@behinds'] ?? '0')
-                ];
-            }
-
-            // Extract quarters and events if available
-            $quarters = isset($match['quarters']) ? $match['quarters'] : null;
-            $events = isset($match['events']) ? $match['events'] : null;
-            $lineups = isset($match['lineups']) ? $match['lineups'] : [];
-
-            // Base match data
-            $baseData = [
-                'category' => 'AFL Premiership',
-                'week' => (string)$week,
-                'match_id' => $matchId,
-                'status' => $status,
-                'date' => $date,
-                'time' => $time,
-                'venue' => $venue,
-            ];
-
-            // Add to formatted matches
-            $formattedMatches[] = [
-                ...$baseData,
-                'localteam' => $localTeam,
-                'visitorteam' => $visitorTeam,
-                'quarters' => $quarters,
-                'events' => $events,
-                'lineups' => $lineups
-            ];
-        }
-
-        return $formattedMatches;
-    }
 
 
     /**

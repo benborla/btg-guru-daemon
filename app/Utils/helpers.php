@@ -402,3 +402,108 @@ function isDevMode(): bool
 {
     return app()->isLocal() || app()->isStaging();
 }
+
+if (!function_exists('format_live_matches')) {
+    /**
+     * Format live matches from the AFL API response
+     *
+     * @param array $liveData
+     * @return array
+     */
+    function format_live_matches($liveData): array
+    {
+        // Check if we have the expected structure
+        if (!isset($liveData['scores']['category']['match'])) {
+            return [];
+        }
+
+        // Get matches array, ensuring it's always an array even if there's only one match
+        $matches = $liveData['scores']['category']['match'];
+        if (!isset($matches[0])) {
+            $matches = [$matches]; // Wrap single match in array
+        }
+
+        // Format each match
+        $formattedMatches = [];
+        foreach ($matches as $match) {
+            // Extract attributes with @ prefix
+            $matchId = $match['@id'] ?? '';
+            $status = $match['@status'] ?? 'NS';
+            $date = $match['@date'] ?? '';
+            $time = $match['@time'] ?? '';
+            $venue = $match['@venue'] ?? '';
+            $week = $liveData['scores']['category']['@week'] ?? '';
+
+            // Extract team data
+            $localTeam = [];
+            if (isset($match['localteam'])) {
+                $localTeam = [
+                    'name' => $match['localteam']['@name'] ?? '',
+                    'score' => (string)($match['localteam']['@score'] ?? '0'),
+                    'goals' => (string)($match['localteam']['@goals'] ?? '0'),
+                    'behinds' => (string)($match['localteam']['@behinds'] ?? '0'),
+                    'psgoals' => (string)($match['localteam']['@psgoals'] ?? ''),
+                    'psbehinds' => (string)($match['localteam']['@psbehinds'] ?? ''),
+                    'id' => $match['localteam']['@id'] ?? ''
+                ];
+            }
+
+            $visitorTeam = [];
+            if (isset($match['visitorteam'])) {
+                $visitorTeam = [
+                    'name' => $match['visitorteam']['@name'] ?? '',
+                    'score' => (string)($match['visitorteam']['@score'] ?? '0'),
+                    'goals' => (string)($match['visitorteam']['@goals'] ?? '0'),
+                    'behinds' => (string)($match['visitorteam']['@behinds'] ?? '0'),
+                    'psgoals' => (string)($match['visitorteam']['@psgoals'] ?? ''),
+                    'psbehinds' => (string)($match['visitorteam']['@psbehinds'] ?? ''),
+                    'id' => $match['visitorteam']['@id'] ?? ''
+                ];
+            }
+
+            // Process quarters data
+            $formattedQuarters = [];
+            if (isset($match['quarters']['quarter'])) {
+                $quarterData = $match['quarters']['quarter'];
+                
+                // Handle both single quarter and array of quarters
+                if (!isset($quarterData[0])) {
+                    $quarterData = [$quarterData];
+                }
+                
+                // Format each quarter
+                foreach ($quarterData as $quarter) {
+                    $quarterName = $quarter['@name'] ?? '';
+                    $formattedQuarters[$quarterName] = $quarter;
+                }
+            }
+            
+            // Extract events and lineups if available
+            $events = isset($match['events']) ? $match['events'] : [];
+            $lineups = isset($match['lineups']) ? $match['lineups'] : [];
+
+            // Base match data
+            $baseData = [
+                'category' => 'AFL Premiership',
+                'week' => (string)$week,
+                'match_id' => $matchId,
+                'status' => $status,
+                'date' => $date,
+                'time' => $time,
+                'venue' => $venue,
+            ];
+
+            // Add to formatted matches
+            $formattedMatches[] = [
+                ...$baseData,
+                'localteam' => $localTeam,
+                'visitorteam' => $visitorTeam,
+                'quarters' => $formattedQuarters,
+                'events' => $events,
+                'lineups' => $lineups
+            ];
+        }
+
+        return $formattedMatches;
+    }
+}
