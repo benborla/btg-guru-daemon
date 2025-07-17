@@ -403,6 +403,80 @@ function isDevMode(): bool
     return app()->isLocal() || app()->isStaging();
 }
 
+if (!function_exists('process_schedule_data')) {
+    /**
+     * Process schedule data into formatted match data
+     *
+     * @param \Illuminate\Support\Collection $scheduleData
+     * @param \App\Services\Afl\AflService $aflService
+     * @return array
+     */
+    function process_schedule_data($scheduleData, $aflService): array
+    {
+        return $scheduleData
+            ->map(function ($match) use ($aflService) {
+                // Extract team data from the JSON structure
+                $localTeam = $match->local_team;
+                $visitorTeam = $match->visitor_team;
+                $matchData = \App\Models\AflApiResponse::findByMatchData($match->match_id, $match->round)->first();
+                $aflService->hydrate($matchData);
+                $matchDetails = $aflService->getMatchDataById($match->match_id);
+
+                // Get the base data directly from the model
+                $baseData = [
+                    'category' => 'AFL Premiership',
+                    'week' => (string)$match->round,
+                    'match_id' => $match->match_id,
+                    'status' => $match->status,
+                    'date' => $match->date,
+                    'time' => $match->time,
+                    'venue' => $match->venue,
+                ];
+
+                // Add team data
+                return [
+                    ...$baseData,
+                    'localteam' => $localTeam,
+                    'visitorteam' => $visitorTeam,
+                    'quarters' => $matchDetails['quarters'] ?? [],
+                    'events' => $matchDetails['events'] ?? [],
+                    'lineups' => $matchDetails['lineups'] ?? []
+                ];
+            })
+            ->values()
+            ->all();
+    }
+}
+
+if (!function_exists('process_match_data')) {
+    /**
+     * Process match data for a specific match ID
+     *
+     * @param \App\Models\AflApiResponse $data
+     * @param string $matchId
+     * @param \App\Services\Afl\AflService $aflService
+     * @return array
+     */
+    function process_match_data($data, string $matchId, $aflService): array
+    {
+        $aflService->hydrate($data);
+        // Use the getMatchDataById method to get the exact match by ID
+        $structured = $aflService->getMatchDataById($matchId);
+
+        // If the specific match wasn't found in the data, fall back to current match data
+        if (!$structured) {
+            $structured = $aflService->getCurrentMatchData();
+        }
+
+        return [
+            'match_date' => $data->match_date,
+            'source' => 'proxy_server',
+            'round' => $data->round,
+            ...$structured
+        ];
+    }
+}
+
 if (!function_exists('format_live_matches')) {
     /**
      * Format live matches from the AFL API response

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\Afl\AflService;
-use Illuminate\Http\JsonResponse;
 use App\Models\AflApiResponse;
 use App\Models\AflSchedule;
+use App\Services\Afl\AflService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use App\Models\Types\AflRequestType;
 
 class AflController extends Controller
 {
@@ -101,38 +104,18 @@ class AflController extends Controller
         // Sort the schedule data by date and time using the model's static method
         $sortedScheduleData = AflSchedule::sortByDateTime($scheduleData);
 
-        $formattedSchedules = $sortedScheduleData
-            ->map(function ($match) {
-                // Extract team data from the JSON structure
-                $localTeam = $match->local_team;
-                $visitorTeam = $match->visitor_team;
-                $matchData = AflApiResponse::findByMatchData($match->match_id, $match->round)->first();
-                $this->aflService->hydrate($matchData);
-                $matchDetails = $this->aflService->getMatchDataById($match->match_id);
-
-                // Get the base data directly from the model
-                $baseData = [
-                    'category' => 'AFL Premiership',
-                    'week' => (string)$match->round,
-                    'match_id' => $match->match_id,
-                    'status' => $match->status,
-                    'date' => $match->date,
-                    'time' => $match->time,
-                    'venue' => $match->venue,
-                ];
-
-                // Add team data
-                return [
-                    ...$baseData,
-                    'localteam' => $localTeam,
-                    'visitorteam' => $visitorTeam,
-                    'quarters' => $matchDetails['quarters'] ?? [],
-                    'events' => $matchDetails['events'] ?? [],
-                    'lineups' => $matchDetails['lineups'] ?? []
-                ];
-            })
-            ->values()
-            ->all();
+        // Process the schedule data - with caching for historical rounds
+        if ($round == $currentRound) {
+            // For current round, always get fresh data without caching
+            $formattedSchedules = process_schedule_data($sortedScheduleData, $this->aflService);
+        } else {
+            // For historical rounds, use cache with a 24-hour expiration
+            $cacheKey = 'afl_schedules_round_' . $round;
+            $aflService = $this->aflService;
+            $formattedSchedules = Cache::remember($cacheKey, now()->addYear(), function () use ($sortedScheduleData, $aflService) {
+                return process_schedule_data($sortedScheduleData, $aflService);
+            });
+        }
 
         return response()->json([
             'live_match_available' => has_live_match_ongoing(),
@@ -142,9 +125,6 @@ class AflController extends Controller
             'data' => $formattedSchedules
         ]);
     }
-
-
-
 
     /**
      * Undocumented function
@@ -168,30 +148,40 @@ class AflController extends Controller
         return response()->json($this->aflService->getCurrentMatchData());
     }
 
+
+
     public function getMatchData(string $round, string $matchId): JsonResponse
     {
         $data = AflApiResponse::findByMatchData($matchId, $round)->first();
         abort_if(!$data, 404, 'Match not found');
 
-        $this->aflService->hydrate($data);
-        // Use the new getMatchDataById method to get the exact match by ID
-        $structured = $this->aflService->getMatchDataById($matchId);
+        $isRecordedMatch = $data->request_type === AflRequestType::Record->name;
 
-        // If the specific match wasn't found in the data, fall back to current match data
-        if (!$structured) {
-            $structured = $this->aflService->getCurrentMatchData();
+        // Create a cache key for this specific match
+        $cacheKey = 'afl_match_data_' . $round . '_' . $matchId;
+
+        // For recorded matches, use cache with a year expiration
+        // For live matches, always get fresh data
+        if ($isRecordedMatch) {
+            $aflService = $this->aflService;
+            $response = Cache::remember($cacheKey, now()->addYear(), function () use ($data, $matchId, $aflService) {
+                return process_match_data($data, $matchId, $aflService);
+            });
+        } else {
+            $response = process_match_data($data, $matchId, $this->aflService);
         }
 
-        return response()->json([
-            'match_date' => $data->match_date,
-            'source' => 'proxy_server',
-            'round' => $data->round,
-            ...$structured
-        ]);
+        return response()->json($response);
     }
+
+
 
     public function scoreSummary(string $round)
     {
+        $data = AflApiResponse::whereIn('request_type', ['Live', 'Record'])
+            ->where('round', $round)
+            ->latest()
+            ->first();
         // return $this->aflService->getScoreSummary($round);
     }
 
