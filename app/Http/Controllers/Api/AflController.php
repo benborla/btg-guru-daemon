@@ -259,7 +259,13 @@ class AflController extends Controller
         abort_if(!$data, 404, 'Match not found');
 
         $this->aflService->hydrate($data);
-        $structured = $this->aflService->getCurrentMatchData();
+        // Use the new getMatchDataById method to get the exact match by ID
+        $structured = $this->aflService->getMatchDataById($matchId);
+
+        // If the specific match wasn't found in the data, fall back to current match data
+        if (!$structured) {
+            $structured = $this->aflService->getCurrentMatchData();
+        }
 
         return response()->json([
             'match_date' => $data->match_date,

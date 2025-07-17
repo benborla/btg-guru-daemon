@@ -140,6 +140,17 @@ class AflService
     {
         return $this->analyzer->getPreviousMatchData();
     }
+    
+    /**
+     * Get match data by specific match ID
+     * 
+     * @param string $matchId The match ID to find
+     * @return array|null The match data or null if not found
+     */
+    public function getMatchDataById(string $matchId): ?array
+    {
+        return $this->analyzer->getMatchDataById($matchId);
+    }
 
     public function getTeams()
     {
