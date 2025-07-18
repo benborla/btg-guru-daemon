@@ -86,7 +86,7 @@ class AflService
 
     public function hydrate($data = [])
     {
-        $data = $data ?? AflApiResponse::getLatestData();
+        $data = $data ?: AflApiResponse::getLatestData();
         $response = [];
 
         if ($data) {
@@ -140,7 +140,7 @@ class AflService
     {
         return $this->analyzer->getPreviousMatchData();
     }
-    
+
     /**
      * Get match data by specific match ID
      * 
