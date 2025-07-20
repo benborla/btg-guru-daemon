@@ -89,42 +89,55 @@ if (!function_exists('get_round_date')) {
 if (!function_exists('get_current_round')) {
     function get_current_round(): array
     {
-        // Get the current round based on today's date
+        // Get the current round based on today's date using proximity logic
         $now = Carbon::now('Australia/Sydney');
         $rounds = get_schedules();
         
         // First check if today falls within any round's date range
         foreach ($rounds as $round) {
-            $roundStart = Carbon::parse($round['start'], 'Australia/Sydney');
-            $roundEnd = Carbon::parse($round['end'], 'Australia/Sydney');
-            
-            // If today is within this round's date range, this is the current round
-            if ($now->between($roundStart, $roundEnd)) {
+            $roundStart = Carbon::parse($round['start'], 'Australia/Sydney')->startOfDay();
+            // Make end date inclusive of the entire day (until 23:59:59)
+            $roundEnd = Carbon::parse($round['end'], 'Australia/Sydney')->endOfDay();
+
+            // Use >= and <= for date range comparison
+            if ($now->gte($roundStart) && $now->lte($roundEnd)) {
                 return $round;
             }
         }
         
-        // If we're not within any round's date range, find the next upcoming round
+        // If we're not within any round's date range, find the next upcoming round first
+        // If no upcoming round, then find the closest past round
         $nextRound = null;
-        $nextRoundDiff = null;
-        
+        $nextRoundDistance = PHP_INT_MAX;
+        $closestPastRound = null;
+        $closestPastDistance = PHP_INT_MAX;
+
         foreach ($rounds as $round) {
-            $roundStart = Carbon::parse($round['start'], 'Australia/Sydney');
+            $roundStart = Carbon::parse($round['start'], 'Australia/Sydney')->startOfDay();
+            $roundEnd = Carbon::parse($round['end'], 'Australia/Sydney')->endOfDay();
             
-            // If the round start is in the future, it's a candidate for next round
             if ($now->lt($roundStart)) {
-                $diff = $now->diffInSeconds($roundStart);
-                
-                // If we haven't found a next round yet, or this one is sooner
-                if ($nextRound === null || $diff < $nextRoundDiff) {
+                // Round is in the future - candidate for next round
+                $distance = abs($now->diffInSeconds($roundStart, false));
+                if ($distance < $nextRoundDistance) {
                     $nextRound = $round;
-                    $nextRoundDiff = $diff;
+                    $nextRoundDistance = $distance;
+                }
+            } elseif ($now->gt($roundEnd)) {
+                // Round is in the past - candidate for closest past round
+                $distance = abs($now->diffInSeconds($roundEnd, false));
+                if ($distance < $closestPastDistance) {
+                    $closestPastRound = $round;
+                    $closestPastDistance = $distance;
                 }
             }
         }
-        
-        // Return the next upcoming round, or empty array if no future rounds
-        return $nextRound !== null ? $nextRound : [];
+
+        // Prefer next round if available, otherwise use closest past round
+        $closestRound = $nextRound !== null ? $nextRound : $closestPastRound;
+
+        // Return the closest round, or empty array if no rounds found
+        return $closestRound !== null ? $closestRound : [];
     }
 }
 
@@ -181,7 +194,7 @@ if (!function_exists('has_live_match_ongoing')) {
 
         // Get current date and time
         $now = Carbon::now('Australia/Sydney');
-        
+
         // Format current date in dd.mm.YYYY format to match database format
         $currentDate = $now->format('d.m.Y');
 
@@ -274,18 +287,21 @@ if (!function_exists('get_time_until_next_match')) {
             // We need a custom approach since the dates are in dd.mm.YYYY format
             // Get all matches for the current round
             $allMatches = \App\Models\AflSchedule::byRound($currentRound['round'])->get();
-            
+
             // Filter for future matches by parsing the dates
-            $futureMatches = $allMatches->filter(function($match) use ($now) {
+            $futureMatches = $allMatches->filter(function ($match) use ($now) {
                 // Convert dd.mm.YYYY to Carbon date for comparison
                 $dateParts = explode('.', $match->date);
                 if (count($dateParts) === 3) {
-                    $matchDate = Carbon::createFromFormat('d.m.Y H:i', 
-                        $dateParts[0] . '.' . $dateParts[1] . '.' . $dateParts[2] . ' ' . $match->time, 'Australia/Sydney');
+                    $matchDate = Carbon::createFromFormat(
+                        'd.m.Y H:i',
+                        $dateParts[0] . '.' . $dateParts[1] . '.' . $dateParts[2] . ' ' . $match->time,
+                        'Australia/Sydney'
+                    );
                     return $matchDate->gt($now);
                 }
                 return false;
-            })->sortBy(function($match) {
+            })->sortBy(function ($match) {
                 // Sort by parsed date and time
                 $dateParts = explode('.', $match->date);
                 return $dateParts[2] . '-' . $dateParts[1] . '-' . $dateParts[0] . ' ' . $match->time;
@@ -539,19 +555,19 @@ if (!function_exists('format_live_matches')) {
             $formattedQuarters = [];
             if (isset($match['quarters']['quarter'])) {
                 $quarterData = $match['quarters']['quarter'];
-                
+
                 // Handle both single quarter and array of quarters
                 if (!isset($quarterData[0])) {
                     $quarterData = [$quarterData];
                 }
-                
+
                 // Format each quarter
                 foreach ($quarterData as $quarter) {
                     $quarterName = $quarter['@name'] ?? '';
                     $formattedQuarters[$quarterName] = $quarter;
                 }
             }
-            
+
             // Extract events and lineups if available
             $events = isset($match['events']) ? $match['events'] : [];
             $lineups = isset($match['lineups']) ? $match['lineups'] : [];

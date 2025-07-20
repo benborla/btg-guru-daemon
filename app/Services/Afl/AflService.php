@@ -99,9 +99,9 @@ class AflService
 
     public function getScoreboard()
     {
-        if (!has_match_today()) {
-            return $this->analyzer->getNextMatchSchedule();
-        }
+        // if (!has_match_today()) {
+        //     return $this->analyzer->getNextMatchSchedule();
+        // }
 
         return $this->analyzer->getTeamScores();
     }

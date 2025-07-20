@@ -10,15 +10,19 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('/test', function (\App\Services\Afl\AflService $service) {
-    dump([
-        // 'get_current_round()' => get_current_round(),
-        // 'has_match_today()' => has_match_today(),
-        // 'standings' => $service->getTeamStandings(),
-        'scoreboard' => $service->getScoreboard()->toArray(),
-        // 'schedules' => $service->getUpcomingSchedules(),
-        'previous_match' => $service->getPreviousMatchData(),
-        'current_match' => $service->getCurrentMatchData(),
-    ]);
+    // Test July 22, 2025 case
+    Carbon\Carbon::setTestNow(Carbon\Carbon::create(2025, 7, 22, 10, 0, 0, 'Australia/Sydney'));
+    $result = get_current_round();
+    echo "July 22, 2025 result: ";
+    print_r($result);
+    echo "\n\n";
+    
+    // Reset and test current time
+    Carbon\Carbon::setTestNow(null);
+    $result2 = get_current_round();
+    echo "Current time result: ";
+    print_r($result2);
+    die;
 });
 
 Route::get('/test-schedule', function (\App\Services\Afl\Utils\Analyzer $analyzer) {

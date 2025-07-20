@@ -12,6 +12,8 @@ sudo supervisorctl update
 
 sudo supervisorctl start "bts-worker:*"
 sudo supervisorctl start "bts-queue-worker:*"
+sudo supervisorctl stop "bts-queue-worker:*"
+
 
 # Check status
 sudo supervisorctl status

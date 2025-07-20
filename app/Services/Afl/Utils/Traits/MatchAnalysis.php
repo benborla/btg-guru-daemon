@@ -300,7 +300,7 @@ trait MatchAnalysis
     {
         return $this->getTeamScores()->sortBy('margin');
     }
-    
+
     /**
      * Get match data by specific match ID
      *
@@ -312,16 +312,16 @@ trait MatchAnalysis
         if (empty($this->matches)) {
             return null;
         }
-        
+
         // Find the specific match with the given ID
         $match = $this->matches->first(function ($match) use ($matchId) {
             return $match['@id'] === $matchId;
         });
-        
+
         if (!$match) {
             return null;
         }
-        
+
         return $this->restructureMatchData($match);
     }
 
