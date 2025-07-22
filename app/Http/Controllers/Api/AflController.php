@@ -67,10 +67,11 @@ class AflController extends Controller
     public function schedules(): JsonResponse
     {
         $currentRound = get_current_round()['round'];
-        $round = request()->get('round') == 0 ? 'OR' : request()->get('round');
+        $roundQuery = request()->get('round');
+        $round = !is_null($roundQuery) && (int) $roundQuery == 0 ? 'OR' : $roundQuery;
         $formattedSchedules = [];
 
-        if ($round == $currentRound) {
+        if (is_null($roundQuery)) {
             $liveResponse = AflApiResponse::getLatestData();
 
             if ($liveResponse && !empty($liveResponse->response)) {
