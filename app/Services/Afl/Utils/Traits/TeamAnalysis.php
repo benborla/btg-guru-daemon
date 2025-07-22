@@ -538,7 +538,7 @@ trait TeamAnalysis
 
     public function getTeamStandings(): array
     {
-        $standings = AflApiResponse::getLatestStandings();
+        $standings = AflApiResponse::getLatestStandings()->first();
         $data = collect($standings->response['standings']['category']['team']);
 
         foreach ($data as $team) {

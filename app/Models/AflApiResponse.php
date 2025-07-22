@@ -53,7 +53,9 @@ class AflApiResponse extends Model
 
     public function scopeGetLatestStandings($query)
     {
-        return $this->scopeGetDataBy($query, self::URI_STANDINGS, AflRequestType::Standings->name);
+        return $query->where('uri', self::URI_STANDINGS)
+            ->where('request_type', AflRequestType::Standings->name)
+            ->orderBy('updated_at', 'desc');
     }
 
     public function scopeFindByMatchData($query, string $matchId, string $round)
@@ -62,11 +64,11 @@ class AflApiResponse extends Model
         // 1. When match is a single object (not in an array)
         // 2. When match is one of many in an array
         return $query
-            ->where(function($q) use ($matchId) {
+            ->where(function ($q) use ($matchId) {
                 // Case 1: Match is a single object (not in an array)
                 $q->whereRaw('json_extract(response, "$.scores.category.match.@id") = ?', [$matchId])
-                // Case 2: Match is in an array (could be at any position)
-                  ->orWhereRaw('json_extract(response, "$.scores.category.match") LIKE ?', ['%"@id":"' . $matchId . '"%']);
+                    // Case 2: Match is in an array (could be at any position)
+                    ->orWhereRaw('json_extract(response, "$.scores.category.match") LIKE ?', ['%"@id":"' . $matchId . '"%']);
             })
             ->whereIn('request_type', ['Live', 'Record'])
             ->where('round', $round);
