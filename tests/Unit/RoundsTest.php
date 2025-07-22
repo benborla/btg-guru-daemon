@@ -165,6 +165,18 @@ describe('get_current_round function', function () {
             ->and($result['round'])->toBeIn([19, 20]); // Either is acceptable for exact halfway
     });
 
+    it('returns the next round if the current date has no matching round', function () {
+        // Set test time to July 22, 2025 at 11:59 PM
+        Carbon::setTestNow(Carbon::create(2025, 7, 22, 23, 59, 0, 'Australia/Sydney'));
+
+        $result = get_current_round();
+
+        expect($result)->toBeArray()
+            ->and($result['round'])->toBe(20)
+            ->and($result['start'])->toBe('2025-07-24')
+            ->and($result['end'])->toBe('2025-07-27');
+    });
+
     afterEach(function () {
         // Clean up after each test
         Carbon::setTestNow(null);

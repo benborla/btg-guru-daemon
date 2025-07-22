@@ -99,9 +99,11 @@ class AflService
 
     public function getScoreboard()
     {
-        // if (!has_match_today()) {
-        //     return $this->analyzer->getNextMatchSchedule();
-        // }
+        // for testing purposes
+        // \Carbon\Carbon::setTestNow(\Carbon\Carbon::create(2025, 7, 28, 23, 59, 0, 'Australia/Sydney'));
+        if (!has_match_today()) {
+            return $this->analyzer->getNextMatchSchedule();
+        }
 
         return $this->analyzer->getTeamScores();
     }
