@@ -154,6 +154,11 @@ class AflController extends Controller
     public function getMatchData(string $round, string $matchId): JsonResponse
     {
         $data = AflApiResponse::findByMatchData($matchId, $round)->first();
+        // check in schedule
+        if (is_null($data)) {
+            $data = AflSchedule::where('match_id', $matchId)->first();
+        }
+
         abort_if(!$data, 404, 'Match not found');
 
         $isRecordedMatch = $data->request_type === AflRequestType::Record->name;
@@ -169,6 +174,45 @@ class AflController extends Controller
                 return process_match_data($data, $matchId, $aflService);
             });
         } else {
+            if ($data instanceof AflSchedule) {
+                return response()->json([
+                    'match_date' => $data->date,
+                    'source' => 'proxy_server',
+                    'round' => (int) $data->round,
+                    '@status' => $data->status,
+                    '@date' => $data->date,
+                    '@time' => $data->time,
+                    '@timezone' => 'AEST',
+                    '@timer' => '',
+                    '@venue' => $data->venue,
+                    '@id' => $data->match_id,
+                    'localteam' => [
+                        '@name' => $data->local_team['name'],
+                        '@score' => $data->local_team['score'],
+                        '@goals' => $data->local_team['goals'],
+                        '@behinds' => $data->local_team['behinds'],
+                        '@psgoals' => $data->local_team['psgoals'],
+                        '@psbehinds' => $data->local_team['psbehinds'],
+                        '@id' => $data->local_team['id'],
+                    ],
+                    'visitorteam' => [
+                        '@name' => $data->visitor_team['name'],
+                        '@score' => $data->visitor_team['score'],
+                        '@goals' => $data->visitor_team['goals'],
+                        '@behinds' => $data->visitor_team['behinds'],
+                        '@psgoals' => $data->visitor_team['psgoals'],
+                        '@psbehinds' => $data->visitor_team['psbehinds'],
+                        '@id' => $data->visitor_team['id'],
+                    ],
+                    'quarters' => $data->quarters ?: [],
+                    'events' => $data->events ?: [],
+                    'lineups' => $data->lineups ?: [
+                        'localteam' => [],
+                        'visitorteam' => []
+                    ]
+                ]);
+            }
+
             $response = process_match_data($data, $matchId, $this->aflService);
         }
 
