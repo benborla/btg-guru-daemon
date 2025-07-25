@@ -71,7 +71,7 @@ class AflController extends Controller
         $round = !is_null($roundQuery) && (int) $roundQuery == 0 ? 'OR' : $roundQuery;
         $formattedSchedules = [];
 
-        if (is_null($roundQuery)) {
+        if (is_null($roundQuery) || (int) $round === $currentRound) {
             $liveResponse = AflApiResponse::getLatestData();
 
             if ($liveResponse && !empty($liveResponse->response)) {
