@@ -5,12 +5,8 @@ namespace App\Console\Commands;
 use App\Services\Afl\AflService;
 use Illuminate\Console\Command;
 use App\Models\AflApiResponse;
-use App\Events\{AflDataUpdate, AflGetLiveMatch};
 use Illuminate\Support\Str;
-use App\Jobs\AflLiveDataSyncJob;
 use App\Models\AflSchedule;
-use Carbon\Carbon;
-use function Laravel\Prompts\progress;
 use App\Models\Types\AflRequestType;
 
 class FetchAflAllRecordCommand extends Command
@@ -46,68 +42,60 @@ class FetchAflAllRecordCommand extends Command
     {
         $this->info('Fetching ALL AFL data starting from Opening Round to the current round from GoalServe API...');
         $this->info('');
-        $this->warn('This command will truncate the AFL API responses table');
-        
-        // Skip confirmation if --yes option is provided
-        if (!$this->option('yes') && !$this->confirm('Do you want to proceed?')) {
-            return Command::FAILURE;
-        }
-        AflApiResponse::truncate();
 
+        $this->call('api:afl');
         // Get all rounds to process
         $rounds = iterate_through_current_round_until_start();
         $totalRounds = count($rounds);
 
-        // Create a progress bar for rounds
-        progress(
-            'Processing AFL rounds',
-            $totalRounds,
-            function ($step) use ($rounds, $totalRounds) {
-                if ($step >= $totalRounds) {
-                    return;
-                }
+        // Process each round
+        foreach ($rounds as $round) {
+            // Get schedules for this round
+            $schedules = AflSchedule::byRound($round)->get();
+            $totalSchedules = $schedules->count();
 
-                $round = $rounds[$step];
-
-                // Get schedules for this round
-                $schedules = AflSchedule::byRound($round)->get();
-                $totalSchedules = $schedules->count();
-
-                // Return early with a message if no schedules found
-                if ($totalSchedules <= 0) {
-                    return "Round {$round}: No matches found";
-                }
-
-                // Simulate processing all schedules for this round
-                foreach ($schedules as $schedule) {
-
-                    // Uncomment when ready to make actual API calls
-                    $startTime = microtime(true);
-                    $data = $this->service->getApiLiveData('date=' . $schedule->date);
-                    $responseTime = microtime(true) - $startTime;
-
-                    if (!empty($data['response'])) {
-                        AflApiResponse::create([
-                            'uri' => $data['uri'],
-                            'round' => $schedule->round,
-                            'match_date' => $schedule->date,
-                            'response' => $data['response'],
-                            'response_code' => $data['response_code'],
-                            'response_time' => round($responseTime),
-                            'request_id' => Str::uuid(),
-                            'request_type' => AflRequestType::Record->name,
-                        ]);
-                    }
-                }
-
-                // Return a message showing the round number and match count
-                return "Round {$round}: {$totalSchedules} matches processed";
+            // Skip if no schedules found
+            if ($totalSchedules <= 0) {
+                $this->info("Round {$round}: No matches found");
+                continue;
             }
-        );
+
+            $this->info("Processing Round {$round}: {$totalSchedules} matches");
+
+            // Process all schedules for this round
+            foreach ($schedules as $schedule) {
+                // Uncomment when ready to make actual API calls
+                $startTime = microtime(true);
+                // check whether this historical data is already fetched
+                $uri = AflApiResponse::URI_LIVE . "&date=" . $schedule->date;
+                if (AflApiResponse::where('uri', $uri)->exists()) {
+                    $this->info("Round {$round}: {$schedule->date} already fetched");
+                    continue;
+                }
+
+                $data = $this->service->getApiLiveData('date=' . $schedule->date);
+                $responseTime = microtime(true) - $startTime;
+
+                if (!empty($data['response'])) {
+                    AflApiResponse::create([
+                        'uri' => $data['uri'],
+                        'round' => $schedule->round,
+                        'match_date' => $schedule->date,
+                        'response' => $data['response'],
+                        'response_code' => $data['response_code'],
+                        'response_time' => round($responseTime),
+                        'request_id' => Str::uuid(),
+                        'request_type' => AflRequestType::Record->name,
+                    ]);
+                }
+            }
+
+            $this->info("Round {$round}: {$totalSchedules} matches processed");
+        }
 
         // Call again the schedules and standings
         $this->info('Fetching schedules and standings...');
-        $this->call('api:afl');
+
         $this->call('api:afl:schedules');
         $this->call('api:afl:standings');
         $this->call('afl:schedule');
