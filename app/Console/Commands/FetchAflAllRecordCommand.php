@@ -99,6 +99,7 @@ class FetchAflAllRecordCommand extends Command
         $this->call('api:afl:schedules');
         $this->call('api:afl:standings');
         $this->call('afl:schedule');
+        $this->call('cache:clear');
 
         return Command::SUCCESS;
     }
