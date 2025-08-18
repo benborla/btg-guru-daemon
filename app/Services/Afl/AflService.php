@@ -119,11 +119,11 @@ class AflService
 
     public function getCurrentMatchData(): array
     {
-        return $this->analyzer->getCurrentMatchData();
+        return $this->analyzer->getCurrentMatchData() ?? [];
     }
 
     public function getPreviousMatchData(): array
     {
-        return $this->analyzer->getPreviousMatchData();
+        return $this->analyzer->getPreviousMatchData() ?? [];
     }
 }
