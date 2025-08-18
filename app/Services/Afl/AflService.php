@@ -135,12 +135,12 @@ class AflService
 
     public function getCurrentMatchData(): array|null
     {
-        return $this->analyzer->getCurrentMatchData();
+        return $this->analyzer->getCurrentMatchData() ?? [];
     }
 
     public function getPreviousMatchData(): array|null
     {
-        return $this->analyzer->getPreviousMatchData();
+        return $this->analyzer->getPreviousMatchData() ?? [];
     }
 
     /**
