@@ -4,3 +4,5 @@
 [ ] - delete worker.log regularly (used by supervisord)
 [x] - remove telescope
 
+
+
