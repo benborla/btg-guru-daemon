@@ -276,6 +276,22 @@ trait TeamAnalysis
         })->unique()->values();
     }
 
+    public function getAllTeamNamesInfo(): Collection
+    {
+        return $this->matches->flatMap(function ($match) {
+            return [
+                $match['localteam']['@name'] => [
+                    'name' => $match['localteam']['@name'],
+                    'id' => $match['localteam']['@id'],
+                ],
+                $match['visitorteam']['@name'] => [
+                    'name' => $match['visitorteam']['@name'],
+                    'id' => $match['visitorteam']['@id'],
+                ],
+            ];
+        })->unique()->values();
+    }
+
     /**
      * Get all head-to-head records between teams
      */

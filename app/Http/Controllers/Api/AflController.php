@@ -127,6 +127,35 @@ class AflController extends Controller
         ]);
     }
 
+    public function historySchedules(): JsonResponse
+    {
+
+        $teamId = request()->get('teamId');
+
+        if (!$teamId) {
+            return response()->json([
+                'error' => 'Team ID is required'
+            ], 400);
+        }
+
+        $scheduleData = AflSchedule::all();
+
+        // manual filtering since stored team data is in json format
+        $scheduleData = $scheduleData->filter(function ($schedule) use ($teamId) {
+            return $schedule->local_team['id'] == $teamId || $schedule->visitor_team['id'] == $teamId;
+        });
+
+        $rounds = $scheduleData->unique('round')->pluck('round');
+
+
+        return response()->json([
+            'teams' => $this->aflService->getTeamsInfo(),
+            'rounds' => $rounds, 
+            'data' => $scheduleData
+        ]);
+    }
+    
+
     /**
      * Undocumented function
      *

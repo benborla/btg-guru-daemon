@@ -158,4 +158,9 @@ class AflService
     {
         return $this->analyzer->getAllTeamNames();
     }
+
+    public function getTeamsInfo()
+    {
+        return $this->analyzer->getAllTeamNamesInfo();
+    }
 }
