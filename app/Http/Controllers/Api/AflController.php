@@ -138,23 +138,16 @@ class AflController extends Controller
             ], 400);
         }
 
-        $scheduleData = AflSchedule::all();
-
-        // manual filtering since stored team data is in json format
-        $scheduleData = $scheduleData->filter(function ($schedule) use ($teamId) {
-            return $schedule->local_team['id'] == $teamId || $schedule->visitor_team['id'] == $teamId;
-        });
-
+        $scheduleData = $this->aflService->getHistorySchedules($teamId ?? '-');
         $rounds = $scheduleData->unique('round')->pluck('round');
-
 
         return response()->json([
             'teams' => $this->aflService->getTeamsInfo(),
-            'rounds' => $rounds, 
+            'rounds' => $rounds,
             'data' => $scheduleData
         ]);
     }
-    
+
 
     /**
      * Undocumented function

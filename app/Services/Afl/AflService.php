@@ -7,6 +7,7 @@ use App\Services\Facade\ApiInterface;
 use App\Services\ApiDrivers\GoalServeApiDriver;
 use App\Services\Afl\Utils\Analyzer;
 use App\Models\AflApiResponse;
+use App\Models\AflSchedule;
 
 class AflService
 {
@@ -162,5 +163,49 @@ class AflService
     public function getTeamsInfo()
     {
         return $this->analyzer->getAllTeamNamesInfo()->sortBy('name');
+    }
+
+    public function getHistorySchedules($teamId = null)
+    {
+
+        $scheduleData = AflSchedule::all();
+
+        // manual filtering since stored team data is in json format
+        $scheduleData = $scheduleData->filter(function ($schedule) use ($teamId) {
+            return $schedule->local_team['id'] == $teamId || $schedule->visitor_team['id'] == $teamId;
+        })->map(function($item) use ($teamId){
+
+            // add match status on very round
+            $localTeamScore = $item['local_team']['score'] ?? 0;
+            $visitorScore = $item['visitor_team']['score'] ?? 0;
+
+            if ($item['local_team']['id'] == $teamId) {
+
+                if ($localTeamScore > $visitorScore) {
+                    $item['match_status'] = 'W';
+                }else if ($localTeamScore < $visitorScore) {
+                    $item['match_status'] = 'L';
+                } else {
+                    $item['match_status'] = '-';
+                }
+            }
+
+            if ($item['visitor_team']['id'] == $teamId) {
+
+                if ($visitorScore > $localTeamScore) {
+                    $item['match_status'] = 'W';
+                }else if ($visitorScore < $localTeamScore) {
+                    $item['match_status'] = 'L';
+                } else {
+                    $item['match_status'] = '-';
+                }
+            }
+
+            return $item;
+        });
+
+
+
+        return $scheduleData;
     }
 }
