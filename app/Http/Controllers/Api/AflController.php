@@ -139,12 +139,24 @@ class AflController extends Controller
         }
 
         $scheduleData = $this->aflService->getHistorySchedules($teamId ?? '-');
-        $rounds = $scheduleData->unique('round')->pluck('round');
+        $minRound = $scheduleData->min('round');
+        $maxRound = $scheduleData->max('round');
+        // to include BYE
+        $completeRounds = collect(range($minRound, $maxRound));
+
+        // to flag BYE
+        $completeSchedule = collect(range($minRound, $maxRound))->mapWithKeys(function ($round) use ($scheduleData) {
+            $roundData = $scheduleData->where('round', $round)->first();
+            return [$round => $roundData ?: (object)[
+                'round' => $round,
+                'status' => 'BYE', // or whatever default you want
+            ]];
+        });
 
         return response()->json([
             'teams' => $this->aflService->getTeamsInfo(),
-            'rounds' => $rounds,
-            'data' => $scheduleData
+            'rounds' => $completeRounds,
+            'data' => $completeSchedule
         ]);
     }
 
