@@ -283,10 +283,12 @@ trait TeamAnalysis
                 $match['localteam']['@name'] => [
                     'name' => $match['localteam']['@name'],
                     'id' => $match['localteam']['@id'],
+                    'image_name' => str_replace(' ', '_', $match['localteam']['@name'])
                 ],
                 $match['visitorteam']['@name'] => [
                     'name' => $match['visitorteam']['@name'],
                     'id' => $match['visitorteam']['@id'],
+                    'image_name' => str_replace(' ', '_', $match['visitorteam']['@name'])
                 ],
             ];
         })->unique()->values();
