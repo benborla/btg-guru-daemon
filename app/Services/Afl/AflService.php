@@ -201,6 +201,9 @@ class AflService
                 }
             }
 
+            // total
+            $item['total_scores'] = $localTeamScore + $visitorScore;
+
             return $item;
         });
 
