@@ -179,19 +179,82 @@ class AflController extends Controller
         });
 
 
-        /* $chunked = $completeSchedule->chunk(5)->map(function ($data) { */
-        /*     $avg = $data->avg(function($a){ */
-        /*         dump($a['local_team']); */
-        /*     }); */
-        /**/
-        /*     return $data; */
-        /* }); */
+        $chunked = $completeSchedule->chunk(5)->map(function ($data, $i) use ($teamId) {
+            $avg = $data->map(function($a) use ($teamId){
+
+                if (isset($a->local_team)) {
+                    $id = $a->local_team['id'];
+                    $score = $a->local_team['score'];
+
+                    if ($id == $teamId) {
+                        return $score;
+                    }
+                }
+                return 0;
+            });
+
+            $visitorAvg = $data->map(function($a) use ($teamId){
+
+                if (isset($a->visitor_team)) {
+                    $id = $a->visitor_team['id'];
+                    $score = $a->visitor_team['score'];
+
+                    if ($id == $teamId) {
+                        return $score;
+                    }
+                }
+                return 0;
+            });
+
+            $pointsFor = round($avg->merge($visitorAvg)->reject(0)->avg(), 2);
+
+            $agt = $data->map(function($a) use ($teamId){
+
+                if (isset($a->local_team)) {
+                    $id = $a->local_team['id'];
+                    $score = $a->local_team['score'];
+
+                    if ($id != $teamId) {
+                        return $score;
+                    }
+                }
+                return 0;
+            });
+
+            $visitorAgt = $data->map(function($a) use ($teamId){
+
+                if (isset($a->visitor_team)) {
+                    $id = $a->visitor_team['id'];
+                    $score = $a->visitor_team['score'];
+
+                    if ($id != $teamId) {
+                        return $score;
+                    }
+                }
+                return 0;
+            });
+
+            $pointsAgt = round($agt->merge($visitorAgt)->reject(0)->avg(), 2);
+
+            $rounds = $data->map(function($a) {
+                return $a->round;
+            })->values();
+
+            return [
+                'rounds' => "{$rounds[0]} - {$rounds[count($rounds) -1]}",
+                'pointsFor' => $pointsFor,
+                'pointsAgt' => $pointsAgt
+            ];
+        });
+
 
         return response()->json([
             'teams' => $this->aflService->getTeamsInfo(),
             'rounds' => $completeRounds,
             'data' => $completeSchedule,
-            'summaries' => []
+            'summaries' => [
+                'scores' => $chunked
+            ]
         ]);
     }
 
