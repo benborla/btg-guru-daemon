@@ -148,6 +148,13 @@ class AflController extends Controller
         ]);
     }
 
+    public function teamsInfo(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->aflService->getTeamsInfo()
+        ]);
+    }
+
 
     /**
      * Undocumented function
