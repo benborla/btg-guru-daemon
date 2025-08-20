@@ -139,13 +139,37 @@ class AflController extends Controller
         }
 
         $scheduleData = $this->aflService->getHistorySchedules($teamId ?? '-');
-        $minRound = $scheduleData->min('round');
-        $maxRound = $scheduleData->max('round');
-        // to include BYE
-        $completeRounds = collect(range($minRound, $maxRound));
+
+        $allRounds = $scheduleData->unique('round')->pluck('round');
+
+        // Separate numeric and non-numeric rounds
+        $numericRounds = $allRounds->filter(function ($round) {
+            return is_numeric($round);
+        })->map(function ($round) {
+            return (int) $round;
+        })->sort();
+
+        $nonNumericRounds = $allRounds->filter(function ($round) {
+            return !is_numeric($round);
+        });
+        $completeRounds = [];
+        // Fill missing numeric rounds
+        if ($numericRounds->isNotEmpty()) {
+            $minRound = $numericRounds->min();
+            $maxRound = $numericRounds->max();
+            $completeNumericRounds = collect(range($minRound, $maxRound));
+            $missingNumericRounds = $completeNumericRounds->diff($numericRounds);
+
+            // Combine with non-numeric rounds FIRST
+            $completeRounds = $nonNumericRounds
+                ->concat($completeNumericRounds->concat($missingNumericRounds)->sort())
+                ->values();
+        } else {
+            $completeRounds = $nonNumericRounds;
+        }
 
         // to flag BYE
-        $completeSchedule = collect(range($minRound, $maxRound))->mapWithKeys(function ($round) use ($scheduleData) {
+        $completeSchedule = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
             $roundData = $scheduleData->where('round', $round)->first();
             return [$round => $roundData ?: (object)[
                 'round' => $round,
@@ -153,10 +177,20 @@ class AflController extends Controller
             ]];
         });
 
+
+        /* $chunked = $completeSchedule->chunk(5)->map(function ($data) { */
+        /*     $avg = $data->avg(function($a){ */
+        /*         dump($a['local_team']); */
+        /*     }); */
+        /**/
+        /*     return $data; */
+        /* }); */
+
         return response()->json([
             'teams' => $this->aflService->getTeamsInfo(),
             'rounds' => $completeRounds,
-            'data' => $completeSchedule
+            'data' => $completeSchedule,
+            'summaries' => []
         ]);
     }
 
