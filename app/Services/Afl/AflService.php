@@ -145,7 +145,7 @@ class AflService
 
     /**
      * Get match data by specific match ID
-     * 
+     *
      * @param string $matchId The match ID to find
      * @return array|null The match data or null if not found
      */
@@ -161,6 +161,6 @@ class AflService
 
     public function getTeamsInfo()
     {
-        return $this->analyzer->getAllTeamNamesInfo();
+        return $this->analyzer->getAllTeamNamesInfo()->sortBy('name');
     }
 }
