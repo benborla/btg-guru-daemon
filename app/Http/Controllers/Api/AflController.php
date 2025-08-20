@@ -163,9 +163,10 @@ class AflController extends Controller
             // Combine with non-numeric rounds FIRST
             $completeRounds = $nonNumericRounds
                 ->concat($completeNumericRounds->concat($missingNumericRounds)->sort())
+                ->unique()
                 ->values();
         } else {
-            $completeRounds = $nonNumericRounds;
+            $completeRounds = $nonNumericRounds->unique();
         }
 
         // to flag BYE
