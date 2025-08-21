@@ -249,7 +249,7 @@ class AflService
         $roundsInfo = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
             $roundData = $scheduleData->where('round', $round)->first();
             return [$round => [
-                'round' => $roundData['round'] ?? null,
+                'round' => $roundData['round'] ?? $round,
                 'match_id' => $roundData['match_id'] ?? null
             ] ?: (object)[
                     'round' => $round,
