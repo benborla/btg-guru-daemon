@@ -416,7 +416,7 @@ class AflService
                 'avg' => [
                     'pointsFor' => round($teamPoints->avg('pointsFor') , 2 ) ?? 0,
                     'pointsAgt' => round($teamPoints->avg('pointsAgt'), 2) ?? 0,
-                    'total' => $avgPointsFor + $avgPointsAgt
+                    'total' => round($avgPointsFor + $avgPointsAgt, 2)
                 ]
             ]
         ];
