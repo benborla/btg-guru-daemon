@@ -326,7 +326,7 @@ class AflService
                 'rounds' => "{$rounds[0]} - {$rounds[count($rounds) -1]}",
                 'pointsFor' => $pointsFor,
                 'pointsAgt' => $pointsAgt,
-                'total' => ($totalFor + $totalAgt) / $validRounds
+                'total' => round(($totalFor + $totalAgt) / $validRounds ,2 )
             ];
         });
 
