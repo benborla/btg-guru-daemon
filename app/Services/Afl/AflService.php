@@ -246,6 +246,17 @@ class AflService
         } else {
             $completeRounds = $nonNumericRounds->unique();
         }
+        $roundsInfo = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
+            $roundData = $scheduleData->where('round', $round)->first();
+            return [$round => [
+                'round' => $roundData['round'] ?? null,
+                'match_id' => $roundData['match_id'] ?? null
+            ] ?: (object)[
+                    'round' => $round,
+                    'status' => 'BYE', // or whatever default you want,
+                    'match_status' => 'BYE', // or whatever default you want
+            ]];
+        });
 
         // to flag BYE
         $completeSchedule = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
@@ -391,6 +402,7 @@ class AflService
         return [
             'data' => $completeSchedule,
             'rounds' => $completeRounds,
+            'roundsInfo' => $roundsInfo,
             'summaries' => [
                 'scores' => [
                     ...$chunked,
