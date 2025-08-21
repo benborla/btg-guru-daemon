@@ -258,6 +258,7 @@ class AflService
         });
 
         $chunked = $completeSchedule->chunk(5)->map(function ($data, $i) use ($teamId) {
+            $validRounds = $data->whereIn('match_status', ['L', 'W'])->count();
             $avg = $data->map(function($a) use ($teamId){
 
                 if (isset($a->local_team)) {
@@ -285,7 +286,6 @@ class AflService
             });
 
             $pointsFor = round($avg->merge($visitorAvg)->reject(0)->avg(), 2);
-            $allPointsFor = $avg->merge($visitorAvg)->reject(0);
 
             $agt = $data->map(function($a) use ($teamId){
 
@@ -299,7 +299,6 @@ class AflService
                 }
                 return 0;
             });
-
             $visitorAgt = $data->map(function($a) use ($teamId){
 
                 if (isset($a->visitor_team)) {
@@ -314,7 +313,10 @@ class AflService
             });
 
             $pointsAgt = round($agt->merge($visitorAgt)->reject(0)->avg(), 2);
-            $allPointsAgt = $agt->merge($visitorAvg)->reject(0);
+
+            $totalFor = $avg->merge($visitorAvg)->sum();
+            $totalAgt = $visitorAgt->merge($agt)->sum();
+
 
             $rounds = $data->map(function($a) {
                 return $a->round;
@@ -324,6 +326,7 @@ class AflService
                 'rounds' => "{$rounds[0]} - {$rounds[count($rounds) -1]}",
                 'pointsFor' => $pointsFor,
                 'pointsAgt' => $pointsAgt,
+                'total' => ($totalFor + $totalAgt) / $validRounds
             ];
         });
 
@@ -332,18 +335,24 @@ class AflService
            'rounds' => 'SEA',
            'pointsFor' => '-',
            'pointsAgt' => '-',
+            'total' => '-'
         ];
 
         if ($standings) {
             $sea['pointsFor'] = round($standings['points_for'] / $standings['games_played'] , 2);
             $sea['pointsAgt'] = round($standings['points_against'] / $standings['games_played'], 2);
+            $sea['total'] = round(
+                ($standings['points_for'] + $standings['points_against']) / $standings['games_played']
+            , 2);
         }
+
 
         // L5 computation
         $l5 = [
            'rounds' => 'L5',
            'pointsFor' => '-',
            'pointsAgt' => '-',
+           'total' => '-'
         ];
 
         $lastFive = $completeSchedule->whereIn('match_status', ['W', 'L', 'BYE'])->take(-5)->map(function ($a) use($teamId) {
@@ -368,7 +377,7 @@ class AflService
 
             return [
                 'pointsFor' => $pointsFor,
-                'pointsAgt' => $pointsAgt
+                'pointsAgt' => $pointsAgt,
             ];
 
         });
@@ -376,6 +385,7 @@ class AflService
         $lastFive = $lastFive->filter(fn($item) => !empty($item['pointsFor']) && !empty($item['pointsAgt']));
         $l5['pointsFor'] = round($lastFive->avg('pointsFor'), 2);
         $l5['pointsAgt'] = round($lastFive->avg('pointsAgt'), 2);
+        $l5['total'] = $l5['pointsFor'] + $l5['pointsAgt'];
 
 
         return [
@@ -386,7 +396,7 @@ class AflService
                     ...$chunked,
                     $sea,
                     $l5
-                ]
+                ],
             ]
         ];
     }
