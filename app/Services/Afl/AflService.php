@@ -400,6 +400,49 @@ class AflService
 
 
         $teamPoints = $this->checkTeamInLocalOrVisitor($teamId, $completeSchedule);
+        $cumulativeAvgs = $teamPoints->map(function ($value, $key) use ($teamPoints) {
+            $subset = $teamPoints->take((int)$key);
+
+            if (empty($value['pointsFor']) || empty($value['pointsAgt'])) {
+                return [
+                    'avgFor' => 'BYE'
+                ];
+            }
+            $for = $value['pointsFor'];
+            $agt = $value['pointsAgt'];
+
+            if ($key == 'OR') {
+                return [
+                    'avgFor' => $for,
+                    'avgAgt' => $agt,
+                    'avgTotal' => $for + $agt
+                ];
+            }
+
+            if ($key == '1') {
+                if (in_array('OR', $teamPoints->keys()->toArray())) {
+                    $subset = $teamPoints->take($key+1);
+                } else {
+
+                    return [
+                        'avgFor' => $for,
+                        'avgAgt' => $agt,
+                        'total' => $for + $agt,
+                        /* 'avgTotal' => $for + $agt, */
+                    ];
+                }
+            }
+
+            $total = ($subset->sum('pointsFor') + $subset->sum('pointsAgt')) / $subset->count();
+
+            return [
+                'avgFor' => round($subset->avg('pointsFor') ,2),
+                'avgAgt' => round($subset->avg('pointsAgt') ,2),
+                /* 'avgTotal' =>  round($total, 2) */
+            ];
+
+
+        });
         $avgPointsFor = round($teamPoints->avg('pointsFor') , 2 ) ?? 0;
         $avgPointsAgt = round($teamPoints->avg('pointsAgt') , 2 ) ?? 0;
 
@@ -413,21 +456,18 @@ class AflService
                     $sea,
                     $l5
                 ],
-                'avg' => [
-                    'pointsFor' => round($teamPoints->avg('pointsFor') , 2 ) ?? 0,
-                    'pointsAgt' => round($teamPoints->avg('pointsAgt'), 2) ?? 0,
-                    'total' => round($avgPointsFor + $avgPointsAgt, 2)
-                ]
+                'avg' => $cumulativeAvgs->toArray()
             ]
         ];
     }
 
-    private function checkTeamInLocalOrVisitor($teamId, $roundData)
+    private function checkTeamInLocalOrVisitor($teamId, $roundData, $withBye = true)
     {
 
-        return $roundData->whereIn('match_status', ['W', 'L'])->map(function($a) use ($teamId) {
-            $pointsFor = "";
-            $pointsAgt = "";
+        $defaultMatchStatus = ['W', 'L'];
+        return $roundData->whereIn('match_status', $withBye ? [...$defaultMatchStatus, 'BYE'] : $defaultMatchStatus)->map(function($a) use ($teamId) {
+            $pointsFor = 0;
+            $pointsAgt = 0;
 
             if (!empty($a->local_team) && !empty($a->visitor_team)) {
                 if ($a->local_team['id'] == $teamId) {
