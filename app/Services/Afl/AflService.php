@@ -399,6 +399,10 @@ class AflService
         $l5['total'] = $l5['pointsFor'] + $l5['pointsAgt'];
 
 
+        $teamPoints = $this->checkTeamInLocalOrVisitor($teamId, $completeSchedule);
+        $avgPointsFor = round($teamPoints->avg('pointsFor') , 2 ) ?? 0;
+        $avgPointsAgt = round($teamPoints->avg('pointsAgt') , 2 ) ?? 0;
+
         return [
             'data' => $completeSchedule,
             'rounds' => $completeRounds,
@@ -409,7 +413,42 @@ class AflService
                     $sea,
                     $l5
                 ],
+                'avg' => [
+                    'pointsFor' => round($teamPoints->avg('pointsFor') , 2 ) ?? 0,
+                    'pointsAgt' => round($teamPoints->avg('pointsAgt'), 2) ?? 0,
+                    'total' => $avgPointsFor + $avgPointsAgt
+                ]
             ]
         ];
+    }
+
+    private function checkTeamInLocalOrVisitor($teamId, $roundData)
+    {
+
+        return $roundData->whereIn('match_status', ['W', 'L'])->map(function($a) use ($teamId) {
+            $pointsFor = "";
+            $pointsAgt = "";
+
+            if (!empty($a->local_team) && !empty($a->visitor_team)) {
+                if ($a->local_team['id'] == $teamId) {
+                    $pointsFor = $a->local_team['score'];
+                } else {
+                    $pointsAgt = $a->local_team['score'];
+                }
+            }
+
+            if (!empty($a->visitor_team)) {
+                if ($a->visitor_team['id'] != $teamId) {
+                    $pointsAgt = $a->visitor_team['score'];
+                } else {
+                    $pointsFor = $a->visitor_team['score'];
+                }
+            }
+
+            return [
+                'pointsFor' => $pointsFor,
+                'pointsAgt' => $pointsAgt,
+            ];
+        });
     }
 }
