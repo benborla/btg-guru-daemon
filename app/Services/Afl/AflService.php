@@ -119,9 +119,18 @@ class AflService
         return $this->analyzer->getMatchSummary();
     }
 
-    public function getTeamStandings()
+    public function getTeamStandings($teamId = null)
     {
-        return $this->analyzer->getTeamStandings();
+        $allTeamStandings = $this->analyzer->getTeamStandings();
+
+        if ($teamId)  {
+            return array_values(
+                array_filter($allTeamStandings, function($item) use ($teamId) { return $item['id'] == $teamId; }
+                )
+            )[0] ?? [];
+        }
+
+        return $allTeamStandings;
     }
 
     public function getUpcomingSchedules()
@@ -169,6 +178,8 @@ class AflService
     {
 
         $scheduleData = AflSchedule::all();
+        $standings = $this->getTeamStandings($teamId);
+
 
         // manual filtering since stored team data is in json format
         $scheduleData = $scheduleData->filter(function ($schedule) use ($teamId) {
@@ -207,8 +218,176 @@ class AflService
             return $item;
         });
 
+        $allRounds = $scheduleData->unique('round')->pluck('round');
+
+        // Separate numeric and non-numeric rounds
+        $numericRounds = $allRounds->filter(function ($round) {
+            return is_numeric($round);
+        })->map(function ($round) {
+            return (int) $round;
+        })->sort();
+
+        $nonNumericRounds = $allRounds->filter(function ($round) {
+            return !is_numeric($round);
+        });
+        $completeRounds = [];
+        // Fill missing numeric rounds
+        if ($numericRounds->isNotEmpty()) {
+            $minRound = $numericRounds->min();
+            $maxRound = $numericRounds->max();
+            $completeNumericRounds = collect(range($minRound, $maxRound));
+            $missingNumericRounds = $completeNumericRounds->diff($numericRounds);
+
+            // Combine with non-numeric rounds FIRST
+            $completeRounds = $nonNumericRounds
+                ->concat($completeNumericRounds->concat($missingNumericRounds)->sort())
+                ->unique()
+                ->values();
+        } else {
+            $completeRounds = $nonNumericRounds->unique();
+        }
+
+        // to flag BYE
+        $completeSchedule = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
+            $roundData = $scheduleData->where('round', $round)->first();
+            return [$round => $roundData ?: (object)[
+                'round' => $round,
+                'status' => 'BYE', // or whatever default you want
+                'match_status' => 'BYE', // or whatever default you want
+            ]];
+        });
+
+        $chunked = $completeSchedule->chunk(5)->map(function ($data, $i) use ($teamId) {
+            $avg = $data->map(function($a) use ($teamId){
+
+                if (isset($a->local_team)) {
+                    $id = $a->local_team['id'];
+                    $score = $a->local_team['score'];
+
+                    if ($id == $teamId) {
+                        return $score;
+                    }
+                }
+                return 0;
+            });
+
+            $visitorAvg = $data->map(function($a) use ($teamId){
+
+                if (isset($a->visitor_team)) {
+                    $id = $a->visitor_team['id'];
+                    $score = $a->visitor_team['score'];
+
+                    if ($id == $teamId) {
+                        return $score;
+                    }
+                }
+                return 0;
+            });
+
+            $pointsFor = round($avg->merge($visitorAvg)->reject(0)->avg(), 2);
+            $allPointsFor = $avg->merge($visitorAvg)->reject(0);
+
+            $agt = $data->map(function($a) use ($teamId){
+
+                if (isset($a->local_team)) {
+                    $id = $a->local_team['id'];
+                    $score = $a->local_team['score'];
+
+                    if ($id != $teamId) {
+                        return $score;
+                    }
+                }
+                return 0;
+            });
+
+            $visitorAgt = $data->map(function($a) use ($teamId){
+
+                if (isset($a->visitor_team)) {
+                    $id = $a->visitor_team['id'];
+                    $score = $a->visitor_team['score'];
+
+                    if ($id != $teamId) {
+                        return $score;
+                    }
+                }
+                return 0;
+            });
+
+            $pointsAgt = round($agt->merge($visitorAgt)->reject(0)->avg(), 2);
+            $allPointsAgt = $agt->merge($visitorAvg)->reject(0);
+
+            $rounds = $data->map(function($a) {
+                return $a->round;
+            })->values();
+
+            return [
+                'rounds' => "{$rounds[0]} - {$rounds[count($rounds) -1]}",
+                'pointsFor' => $pointsFor,
+                'pointsAgt' => $pointsAgt,
+            ];
+        });
+
+        // SEA computattion
+        $sea = [
+           'rounds' => 'SEA',
+           'pointsFor' => '-',
+           'pointsAgt' => '-',
+        ];
+
+        if ($standings) {
+            $sea['pointsFor'] = round($standings['points_for'] / $standings['games_played'] , 2);
+            $sea['pointsAgt'] = round($standings['points_against'] / $standings['games_played'], 2);
+        }
+
+        // L5 computation
+        $l5 = [
+           'rounds' => 'L5',
+           'pointsFor' => '-',
+           'pointsAgt' => '-',
+        ];
+
+        $lastFive = $completeSchedule->whereIn('match_status', ['W', 'L', 'BYE'])->take(-5)->map(function ($a) use($teamId) {
+            $pointsFor = "";
+            $pointsAgt = "";
+
+            if (!empty($a->local_team) && !empty($a->visitor_team)) {
+                if ($a->local_team['id'] == $teamId) {
+                    $pointsFor = $a->local_team['score'];
+                } else {
+                    $pointsAgt = $a->local_team['score'];
+                }
+            }
+
+            if (!empty($a->visitor_team)) {
+                if ($a->visitor_team['id'] != $teamId) {
+                    $pointsAgt = $a->visitor_team['score'];
+                } else {
+                    $pointsFor = $a->visitor_team['score'];
+                }
+            }
+
+            return [
+                'pointsFor' => $pointsFor,
+                'pointsAgt' => $pointsAgt
+            ];
+
+        });
+
+        $lastFive = $lastFive->filter(fn($item) => !empty($item['pointsFor']) && !empty($item['pointsAgt']));
+        $l5['pointsFor'] = round($lastFive->avg('pointsFor'), 2);
+        $l5['pointsAgt'] = round($lastFive->avg('pointsAgt'), 2);
 
 
-        return $scheduleData;
+        return [
+            'data' => $completeSchedule,
+            'rounds' => $completeRounds,
+            'summaries' => [
+                'scores' => [
+                    ...$chunked,
+                    $sea,
+                    $l5
+                ]
+            ]
+        ];
     }
 }
