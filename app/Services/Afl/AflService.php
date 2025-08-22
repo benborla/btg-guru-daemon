@@ -402,11 +402,21 @@ class AflService
         $cumulativeAvgs = $teamPoints->map(function ($value, $key) use ($teamPoints) {
             $subset = $teamPoints->take((int)$key + 1)->filter(fn($item) => $item['pointsFor'] != 0);
 
-            if (empty($value['pointsFor']) || empty($value['pointsAgt'])) {
+            if ($value['match_status'] == 'BYE') {
                 return [
-                    'avgFor' => 'BYE'
+                    'avgFor' => 'BYE',
+                    'avgAgt' => 'BYE'
                 ];
             }
+
+            if ($value['match_status'] == '-') {
+                return [
+                    'avgFor' => '0',
+                    'avgAgt' => '0',
+                    'avgTotal' => '0'
+                ];
+            }
+
             $for = $value['pointsFor'];
             $agt = $value['pointsAgt'];
 
@@ -464,7 +474,7 @@ class AflService
     private function checkTeamInLocalOrVisitor($teamId, $roundData, $withBye = true)
     {
 
-        $defaultMatchStatus = ['W', 'L'];
+        $defaultMatchStatus = ['W', 'L', '-'];
         return $roundData->whereIn('match_status', $withBye ? [...$defaultMatchStatus, 'BYE'] : $defaultMatchStatus)->map(function($a) use ($teamId) {
             $pointsFor = 0;
             $pointsAgt = 0;
@@ -488,6 +498,7 @@ class AflService
             return [
                 'pointsFor' => $pointsFor,
                 'pointsAgt' => $pointsAgt,
+                'match_status' => $a->match_status
             ];
         });
     }
