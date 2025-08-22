@@ -400,7 +400,8 @@ class AflService
 
         $teamPoints = $this->checkTeamInLocalOrVisitor($teamId, $completeSchedule);
         $cumulativeAvgs = $teamPoints->map(function ($value, $key) use ($teamPoints) {
-            $subset = $teamPoints->take((int)$key + 1)->filter(fn($item) => $item['pointsFor'] != 0);
+            $hasOr = in_array('OR', $teamPoints->keys()->toArray());
+            $subset = $teamPoints->take((int)$key + ($hasOr ? 1 : 0))->filter(fn($item) => $item['pointsFor'] != 0);
 
             if ($value['match_status'] == 'BYE') {
                 return [
@@ -429,7 +430,7 @@ class AflService
             }
 
             if ($key == '1') {
-                if (in_array('OR', $teamPoints->keys()->toArray())) {
+                if ($hasOr) {
                     $subset = $teamPoints->take($key+1);
                 } else {
 
