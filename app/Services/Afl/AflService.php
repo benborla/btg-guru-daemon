@@ -102,9 +102,9 @@ class AflService
     {
         // for testing purposes
         // \Carbon\Carbon::setTestNow(\Carbon\Carbon::create(2025, 7, 28, 23, 59, 0, 'Australia/Sydney'));
-        if (!has_match_today()) {
-            return $this->analyzer->getNextMatchSchedule();
-        }
+        /* if (!has_match_today()) { */
+        /*     return $this->analyzer->getNextMatchSchedule(); */
+        /* } */
 
         return $this->analyzer->getTeamScores();
     }
@@ -176,7 +176,6 @@ class AflService
 
     public function getHistorySchedules($teamId = null)
     {
-
         $scheduleData = AflSchedule::all();
         $standings = $this->getTeamStandings($teamId);
 
@@ -337,7 +336,7 @@ class AflService
                 'rounds' => "{$rounds[0]} - {$rounds[count($rounds) -1]}",
                 'pointsFor' => $pointsFor,
                 'pointsAgt' => $pointsAgt,
-                'total' => round(($totalFor + $totalAgt) / $validRounds ,2 )
+                'total' => round(($totalFor + $totalAgt) / $validRounds ,0 )
             ];
         });
 
@@ -394,14 +393,14 @@ class AflService
         });
 
         $lastFive = $lastFive->filter(fn($item) => !empty($item['pointsFor']) && !empty($item['pointsAgt']));
-        $l5['pointsFor'] = round($lastFive->avg('pointsFor'), 2);
-        $l5['pointsAgt'] = round($lastFive->avg('pointsAgt'), 2);
+        $l5['pointsFor'] = round($lastFive->avg('pointsFor'), 0);
+        $l5['pointsAgt'] = round($lastFive->avg('pointsAgt'), 0);
         $l5['total'] = $l5['pointsFor'] + $l5['pointsAgt'];
 
 
         $teamPoints = $this->checkTeamInLocalOrVisitor($teamId, $completeSchedule);
         $cumulativeAvgs = $teamPoints->map(function ($value, $key) use ($teamPoints) {
-            $subset = $teamPoints->take((int)$key);
+            $subset = $teamPoints->take((int)$key + 1)->filter(fn($item) => $item['pointsFor'] != 0);
 
             if (empty($value['pointsFor']) || empty($value['pointsAgt'])) {
                 return [
@@ -427,24 +426,25 @@ class AflService
                     return [
                         'avgFor' => $for,
                         'avgAgt' => $agt,
-                        'total' => $for + $agt,
+                        'avgTotal' => $for + $agt,
                         /* 'avgTotal' => $for + $agt, */
                     ];
                 }
             }
 
+
             $total = ($subset->sum('pointsFor') + $subset->sum('pointsAgt')) / $subset->count();
+            $avg1 = number_format($subset->avg('pointsFor'), 0 );
+            $avg2 = number_format($subset->avg('pointsAgt'), 0 );
 
             return [
-                'avgFor' => round($subset->avg('pointsFor') ,2),
-                'avgAgt' => round($subset->avg('pointsAgt') ,2),
-                /* 'avgTotal' =>  round($total, 2) */
+                'for' => $for,
+                'agt' => $agt,
+                'avgFor' => $avg1,
+                'avgAgt' => $avg2,
+                'avgTotal' =>  $avg1 + $avg2
             ];
-
-
         });
-        $avgPointsFor = round($teamPoints->avg('pointsFor') , 2 ) ?? 0;
-        $avgPointsAgt = round($teamPoints->avg('pointsAgt') , 2 ) ?? 0;
 
         return [
             'data' => $completeSchedule,
