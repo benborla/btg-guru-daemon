@@ -406,7 +406,8 @@ class AflService
             if ($value['match_status'] == 'BYE') {
                 return [
                     'avgFor' => 'BYE',
-                    'avgAgt' => 'BYE'
+                    'avgAgt' => 'BYE',
+                    'avgTotal' => 'BYE'
                 ];
             }
 
