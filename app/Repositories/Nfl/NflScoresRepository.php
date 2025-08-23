@@ -95,5 +95,13 @@ class NflScoresRepository implements NflScoresRepositoryInterface
 
         return $scores;
     }
+
+    public function getTeamInfo(string $teamId) : Collection
+    {
+        $data = Cache::get($this->cacheKey . date('Y'));
+
+        if (empty($data)) return collect([]);
+
+    }
 }
 

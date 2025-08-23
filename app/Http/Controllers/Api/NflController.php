@@ -77,4 +77,16 @@ class NflController extends Controller
 
         return response()->json($data);
     }
+
+    public function teamSchedule($teamId = null) : JsonResponse
+    {
+        $allTeams = $this->repository->getTeamsInfo();
+        $teamInfo = $allTeams->firstWhere('id', $teamId);
+
+        return response()->json([
+            'teams' => $this->repository->getTeamsInfo(),
+            'teamInfo' => $teamInfo ?? [],
+            'data' => []
+        ]);
+    }
 }

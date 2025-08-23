@@ -11,4 +11,5 @@ interface NflScoresRepositoryInterface
     /* public function refreshScores(): Collection; */
 
     public function getTeamsInfo():Collection;
+    public function getTeamInfo(string $teamId) : Collection;
 }
