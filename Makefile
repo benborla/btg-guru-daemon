@@ -8,7 +8,7 @@ afl-standings:
 	docker compose exec app php artisan api:afl:standings
 
 fetch-afl:
-	docker compose exec app php artisan api:sync --recurring
+	docker compose exec app php artisan api:afl --recurring
 
 afl-all:
 	docker compose exec app php artisan api:afl:all
@@ -21,12 +21,15 @@ api-afl-recurring:
 api-afl-one-time:
 	docker compose exec app php artisan api:afl
 
+nfl-scores:
+	docker compose exec app php artisan nfl:fetch-scores --force
+
 clear-all:
 	docker compose exec app php artisan cache:clear
 	docker compose exec app php artisan config:clear
 	docker compose exec app php artisan route:clear
 	docker compose exec app php artisan view:clear
-	
+
 start-worker:
 	docker compose exec app php artisan queue:work
 api-afl-boradcast:
