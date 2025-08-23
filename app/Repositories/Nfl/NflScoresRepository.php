@@ -72,6 +72,8 @@ class NflScoresRepository implements NflScoresRepositoryInterface
     {
         $scores = Cache::get($this->cacheKey . date('Y'));
 
+        if (empty($scores)) return [];
+
         // map teamsInfo
         $scores = $scores->flatMap(function ($match) {
             $home = $match['hometeam'];
