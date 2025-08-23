@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\NflController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AflController;
 use App\Events\AflDataUpdate;
@@ -46,6 +47,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/match-data/{round}/{matchId}', [AflController::class, 'getMatchData']);
         Route::get('/test', [AflController::class, 'liveTest']);
         Route::get('/teams', [AflController::class, 'teamsInfo']);
+    });
+
+    Route::prefix('nfl')->group(function () {
+        /* Route::get('/has-match-today', [AflController::class, 'hasMatchToday']); */
+        /* Route::get('/scoreboard', [AflController::class, 'scoreboard']); */
+        /* Route::get('/standing', [AflController::class, 'standing']); */
+        /* Route::get('/schedules', [AflController::class, 'schedules']); */
+        /* Route::get('/team/{teamId}', [NflController::class, 'team']); */
+        /* Route::get('/live-match-feed', [AflController::class, 'liveMatchDataFeed']); */
+        /* Route::get('/match-data/{round}/{matchId}', [AflController::class, 'getMatchData']); */
+        /* Route::get('/test', [AflController::class, 'liveTest']); */
+        Route::get('/teams', [NflController::class, 'teamsInfo']);
     });
 
     // Auth routes
