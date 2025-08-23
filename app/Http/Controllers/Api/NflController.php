@@ -84,7 +84,7 @@ class NflController extends Controller
         $teamInfo = $allTeams->firstWhere('id', $teamId);
 
         return response()->json([
-            'teams' => $this->repository->getTeamsInfo(),
+            'teams' => $this->repository->getTeamsInfo()->sortBy('name')->values(),
             'teamInfo' => $teamInfo ?? [],
             'data' => []
         ]);
