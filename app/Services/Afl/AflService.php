@@ -251,7 +251,7 @@ class AflService
                     $newRound = $round . "(" . $i + 1 .")";
                     return [
                         $newRound => [
-                            'round' => $newRound,
+                            'round' => $round,
                             'match_id' => $a['match_id']
                         ]
                     ];
@@ -279,7 +279,6 @@ class AflService
             if ($roundData->count() > 1) {
                 return $roundData->values()->mapWithKeys(function($a, $i) use ($round){
                     $newRound = $round . "(" . $i + 1 .")";
-                    $a->round = $newRound;
                     return [
                         $newRound => $a,
 
