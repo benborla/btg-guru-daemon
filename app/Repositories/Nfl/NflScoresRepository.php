@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Nfl;
 
+use App\Dto\NflStandingsDto;
 use Illuminate\Support\Facades\Cache;
 use App\Models\NflGame;
 use App\Repositories\Interfaces\NflScoresRepositoryInterface;
@@ -11,6 +12,7 @@ use Illuminate\Support\Collection;
 class NflScoresRepository implements NflScoresRepositoryInterface
 {
     protected $cacheKey = 'nfl_scores_season_';
+    protected $cacheKeyStanding = 'nfl-standings_season_';
 
     public function __construct(
         private NflApiService $apiService,
@@ -102,6 +104,13 @@ class NflScoresRepository implements NflScoresRepositoryInterface
 
         if (empty($data)) return collect([]);
 
+    }
+
+    public function getTeamStandings(string $season, string $teamId) :array
+    {
+        $data = Cache::get($this->cacheKeyStanding . $season);
+
+        return (new NflStandingsDto($data))->getTeamStandings($season, $teamId);
     }
 }
 

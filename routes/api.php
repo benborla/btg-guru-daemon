@@ -58,7 +58,8 @@ Route::prefix('v1')->group(function () {
         /* Route::get('/match-data/{round}/{matchId}', [AflController::class, 'getMatchData']); */
         /* Route::get('/test', [AflController::class, 'liveTest']); */
         Route::get('/teams', [NflController::class, 'teamsInfo']);
-        Route::get('/team-schedule/{teamId?}', [NflController::class, 'teamSchedule']);
+        Route::get('/teams', [NflController::class, 'teamsInfo']);
+        Route::get('/team-standings/season/{season}/team-id/{teamId}', [NflController::class, 'teamStandings']);
     });
 
     // Auth routes

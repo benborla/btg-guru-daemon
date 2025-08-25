@@ -89,4 +89,16 @@ class NflController extends Controller
             'data' => []
         ]);
     }
+
+    public function teamStandings($season, $teamId) : JsonResponse
+    {
+        $allTeams = $this->repository->getTeamsInfo();
+        $teamInfo = $allTeams->firstWhere('id', $teamId);
+        $standings = $this->repository->getTeamStandings($season, $teamId);
+
+        return response()->json([
+            'message' => count($standings) == 0 ? 'No team found' : 'Team found',
+            'data' => $standings
+        ]);
+    }
 }

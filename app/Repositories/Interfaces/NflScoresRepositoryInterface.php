@@ -12,4 +12,5 @@ interface NflScoresRepositoryInterface
 
     public function getTeamsInfo():Collection;
     public function getTeamInfo(string $teamId) : Collection;
+    public function getTeamStandings(string $season,string $teamId) : array;
 }
