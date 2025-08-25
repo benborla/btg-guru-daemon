@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 class NflStandingsDto
 {
 
-    public function __construct(public Collection $data){
+    public function __construct(public Collection | null $data){
 
     }
 
