@@ -248,7 +248,7 @@ class AflService
             $roundData = $scheduleData->where('round', $round);
             if ($roundData->count() > 1) {
                 return $roundData->values()->mapWithKeys(function($a, $i) use ($round){
-                    $newRound = $round . " - " . $i + 1;
+                    $newRound = $round . "(" . $i + 1 .")";
                     return [
                         $newRound => [
                             'round' => $newRound,
@@ -278,7 +278,7 @@ class AflService
             $roundData = $scheduleData->where('round', $round);
             if ($roundData->count() > 1) {
                 return $roundData->values()->mapWithKeys(function($a, $i) use ($round){
-                    $newRound = $round . " - " . $i + 1;
+                    $newRound = $round . "(" . $i + 1 .")";
                     $a->round = $newRound;
                     return [
                         $newRound => $a,
@@ -361,8 +361,7 @@ class AflService
             })->values();
 
             return [
-                /* 'rounds' => "{$rounds[0]} - {$rounds[count($rounds) -1]}", */
-                'rounds' => "aa",
+                'rounds' => "{$rounds[0]} - {$rounds[count($rounds) -1]}",
                 'pointsFor' => $pointsFor,
                 'pointsAgt' => $pointsAgt,
                 'total' => round(($totalFor + $totalAgt) / $validRounds ,0 )
