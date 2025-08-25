@@ -17,6 +17,7 @@ return new class extends Migration
             // Basic identifiers
             $table->string('contest_id')->unique()->index(); // Primary game identifier
             $table->string('venue_id')->nullable();
+            $table->string('venue_name')->nullable();
 
             // Game timing
             $table->string('date')->nullable(); // Date string from API
@@ -28,6 +29,9 @@ return new class extends Migration
             // Game status and details
             $table->string('status')->nullable(); // Game status
             $table->string('formatted_date')->nullable(); // Formatted date string
+            $table->text('fumbles')->nullable(); // Formatted date string
+            $table->text('punt_returns')->nullable(); // Formatted date string
+            $table->text('punting')->nullable(); // Formatted date string
 
             // Team and game stats (as strings from API)
             $table->text('attendance')->nullable(); // Can be empty string
@@ -44,6 +48,7 @@ return new class extends Migration
             $table->text('passing')->nullable();
             $table->text('receiving')->nullable();
             $table->text('rushing')->nullable();
+            $table->boolean('isCurrent')->nullable();
 
             $table->timestamps();
 
