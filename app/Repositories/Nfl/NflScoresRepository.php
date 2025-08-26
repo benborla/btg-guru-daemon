@@ -108,11 +108,17 @@ class NflScoresRepository implements NflScoresRepositoryInterface
 
     }
 
-    public function getSchedules($teamId)
+    public function getSchedules()
     {
-        $data =  NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
+        $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
 
-        return [];
+        $data = [];
+
+        if ($schedules) {
+            $data['data'] = json_decode($schedules->response,true)['shedules']['tournament'];
+        }
+
+        return $data;
     }
 }
 

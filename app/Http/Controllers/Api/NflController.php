@@ -92,4 +92,11 @@ class NflController extends Controller
             $this->repository->getScores($date)
         );
     }
+
+    public function schedules()
+    {
+        return response()->json(
+            $this->repository->getSchedules()
+        );
+    }
 }
