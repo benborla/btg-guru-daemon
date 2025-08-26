@@ -16,31 +16,31 @@ class NflGame extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-            "attendance",
-            "awayteam",
-            "hometeam",
-            "contest_id",
-            "date",
-            "datetime_utc",
-            "defensive",
-            "events",
-            "formatted_date",
-            "fumbles",
-            "interceptions",
-            "kick_returns",
-            "kicking",
-            "passing",
-            "punt_returns",
-            "punting",
-            "receiving",
-            "rushing",
-            "status",
-            "team_stats",
-            "time",
-            "timer",
-            "timezone",
-            "venu_id",
-           "venu_name"
+        "attendance",
+        "awayteam",
+        "hometeam",
+        "contest_id",
+        "date",
+        "datetime_utc",
+        "defensive",
+        "events",
+        "formatted_date",
+        "fumbles",
+        "interceptions",
+        "kick_returns",
+        "kicking",
+        "passing",
+        "punt_returns",
+        "punting",
+        "receiving",
+        "rushing",
+        "status",
+        "team_stats",
+        "time",
+        "timer",
+        "timezone",
+        "venu_id",
+        "venu_name"
     ];
 
     protected $casts = [
@@ -56,7 +56,6 @@ class NflGame extends Model
         'kicking' => 'array',
         'passing' => 'array',
         'receiving' => 'array',
-        'rushing' => 'array',
-        // add other JSON columns as needed
+        'rushing' => 'array'
     ];
 }
