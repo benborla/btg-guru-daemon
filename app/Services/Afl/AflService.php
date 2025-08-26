@@ -179,7 +179,6 @@ class AflService
         $scheduleData = AflSchedule::all();
         $standings = $this->getTeamStandings($teamId);
 
-
         // manual filtering since stored team data is in json format
         $scheduleData = $scheduleData->filter(function ($schedule) use ($teamId) {
             return $schedule->local_team['id'] == $teamId || $schedule->visitor_team['id'] == $teamId;
@@ -246,25 +245,53 @@ class AflService
             $completeRounds = $nonNumericRounds->unique();
         }
         $roundsInfo = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
-            $roundData = $scheduleData->where('round', $round)->first();
-            return [$round => [
-                'round' => $roundData['round'] ?? $round,
-                'match_id' => $roundData['match_id'] ?? null
-            ] ?: (object)[
-                    'round' => $round,
-                    'status' => 'BYE', // or whatever default you want,
-                    'match_status' => 'BYE', // or whatever default you want
-            ]];
+            $roundData = $scheduleData->where('round', $round);
+            if ($roundData->count() > 1) {
+                return $roundData->values()->mapWithKeys(function($a, $i) use ($round){
+                    $newRound = $round . "(" . $i + 1 .")";
+                    return [
+                        $newRound => [
+                            'round' => $round,
+                            'match_id' => $a['match_id']
+                        ]
+                    ];
+                });
+
+            } else {
+
+                $first = $roundData->first();
+
+                return [$round => [
+                    'round' => $first['round'] ?? $round,
+                    'match_id' => $first['match_id'] ?? null
+                ] ?: (object)[
+                        'round' => $round,
+                        'status' => 'BYE', // or whatever default you want,
+                        'match_status' => 'BYE', // or whatever default you want
+                    ]];
+            }
+
         });
 
         // to flag BYE
         $completeSchedule = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
-            $roundData = $scheduleData->where('round', $round)->first();
-            return [$round => $roundData ?: (object)[
-                'round' => $round,
-                'status' => 'BYE', // or whatever default you want
-                'match_status' => 'BYE', // or whatever default you want
-            ]];
+            $roundData = $scheduleData->where('round', $round);
+            if ($roundData->count() > 1) {
+                return $roundData->values()->mapWithKeys(function($a, $i) use ($round){
+                    $newRound = $round . "(" . $i + 1 .")";
+                    return [
+                        $newRound => $a,
+
+                    ];
+                });
+            }
+            else {
+                return [$round => $roundData->first() ?: (object)[
+                    'round' => $round,
+                    'status' => 'BYE', // or whatever default you want
+                    'match_status' => 'BYE', // or whatever default you want
+                ]];
+            }
         });
 
         $chunked = $completeSchedule->chunk(5)->map(function ($data, $i) use ($teamId) {
