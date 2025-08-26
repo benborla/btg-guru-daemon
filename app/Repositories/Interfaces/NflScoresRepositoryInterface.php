@@ -10,7 +10,7 @@ interface NflScoresRepositoryInterface
     /* public function getGameById(string $gameId): ?NflScoreData; */
     /* public function refreshScores(): Collection; */
 
-    public function getTeamsInfo():Collection;
+    public function getTeamsInfo(string $seasonTypeId):Collection;
     public function getTeamInfo(string $teamId) : Collection;
     public function getTeamStandings(string $season,string $teamId) : array;
     public function getScores(string $date);

@@ -54,21 +54,26 @@ class NflController extends Controller
 
     public function teamsInfo() : JsonResponse
     {
-
-        $data = $this->repository->getTeamsInfo();
+        $data = $this->repository->getTeamsInfo(1);
 
         return response()->json($data);
     }
 
-    public function teamSchedule($teamId = null) : JsonResponse
+    public function teamSchedule() : JsonResponse
     {
-        $allTeams = $this->repository->getTeamsInfo();
+        $teamId = request()->input('teamId');
+        $seasonTypeId = request()->input('seasonTypeId');
+        $seasonTypes = $this->repository->getSeasonTypes();
+        $allTeams = $this->repository->getTeamsInfo($seasonTypeId)->sortBy('name');
         $teamInfo = $allTeams->firstWhere('id', $teamId);
 
         return response()->json([
-            'teams' => $this->repository->getTeamsInfo()->sortBy('name')->values(),
+            'selectedSeasonType' => $seasonTypes->where('id',$seasonTypeId),
+            'teams' => $allTeams,
             'teamInfo' => $teamInfo ?? [],
-            'data' => []
+            'seasonTypes' => $seasonTypes,
+            'weeks' => $this->repository->getWeeks($seasonTypeId),
+            'data' => $this->repository->getTeamSchedule($teamId, date('Y'), $seasonTypeId)
         ]);
     }
 

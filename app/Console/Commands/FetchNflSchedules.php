@@ -279,12 +279,13 @@ class FetchNflSchedules extends Command
             ]
         );
 
+        /* dd(collect($schedules->first())['season']); */
         // get all scores
-        collect($schedules->first()['tournament'])->map(function($season){
+        collect($schedules->first()['tournament'])->map(function($season) use($schedules) {
 
-            $weeks = collect($season['week'])->map(function($game){
+            $weeks = collect($season['week'])->map(function($game, $week) use($season,$schedules ){
 
-                $matches = collect($game['matches'])->map(function($match){
+                $matches = collect($game['matches'])->map(function($match) use($season, $game, $schedules, $week){
                     $parsed = Carbon::parse($match['date']);
 
                     // Convert to desired format (d.m.Y)
@@ -292,7 +293,11 @@ class FetchNflSchedules extends Command
                     $this->call('nfl:fetch-scores', [
                         '--date' => $formatted,
                         '--force' => true,
-                        '--store' => true
+                        '--store' => true,
+                        '--season' =>  collect($schedules->first())['season'],
+                        '--season_type_id' => $season['id'],
+                        '--season_type_name' => $season['name'],
+                        '--week' => $week+1
                     ]);
                 });
 

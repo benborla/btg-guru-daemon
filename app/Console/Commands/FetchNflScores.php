@@ -19,7 +19,9 @@ class FetchNflScores extends Command
     protected $signature = 'nfl:fetch-scores
                             {--date= : Specific date to fetch (YYYY-MM-DD format)}
                             {--week= : NFL week number to fetch}
-                            {--season= : NFL season year (default: current year)}
+                            {--season : NFL season year (default: current year)}
+                            {--season_type_id : NFL season year (default: current year)}
+                            {--season_type_name : NFL season year (default: current year)}
                             {--force : Force refresh cache}
                             {--store : Store results in database}
                             {--live : Fetch only live games with short cache}';
@@ -42,6 +44,7 @@ class FetchNflScores extends Command
     public function handle()
     {
         $this->info('🏈 Fetching NFL Scores...');
+        $scores = null;
 
         try {
             $options = $this->parseOptions();
@@ -66,7 +69,7 @@ class FetchNflScores extends Command
                 }
 
                 // Cache the results
-                Cache::put($cacheKey, collect($scores), $cacheTtl);
+                Cache::put($cacheKey, $scores, $cacheTtl);
                 $fromCache = false;
             }
 
@@ -87,7 +90,6 @@ class FetchNflScores extends Command
                 'error' => $e->getMessage(),
                 /* 'trace' => $e->getTraceAsString() */
             ]);
-            /* return Command::FAILURE; */
         }
     }
 
@@ -99,16 +101,20 @@ class FetchNflScores extends Command
         $date = $this->option('date');
         $week = $this->option('week');
         $season = $this->option('season') ?? date('Y');
+        $seasonTypeId = $this->option('season_type_id') ?? '';
+        $seasonTypeName = $this->option('season_type_name') ?? '';
 
         // Validate week
-        if ($week && ($week < 1 || $week > 22)) {
-            throw new \InvalidArgumentException('Week must be between 1 and 22');
-        }
+        /* if ($week && ($week < 1 || $week > 22)) { */
+        /*     throw new \InvalidArgumentException('Week must be between 1 and 22'); */
+        /* } */
 
         return [
             'date' => $date,
             'week' => $week,
             'season' => $season,
+            'season_type_id' => $seasonTypeId,
+            'season_type_name' => $seasonTypeName,
             'live_only' => $this->option('live'),
         ];
     }
@@ -187,6 +193,7 @@ class FetchNflScores extends Command
 
         $this->line('API URL: ' . self::API_BASE_URL);
         $this->line('Parameters: ' . json_encode($params));
+        $this->line('options: ' . json_encode($options));
 
         // Make the API request with progress
         $bar = $this->output->createProgressBar(1);
@@ -274,12 +281,23 @@ class FetchNflScores extends Command
         $this->info('💾 Storing in database...');
 
         $bar = $this->output->createProgressBar(count($scores));
+        $options = $this->parseOptions();
         $stored = 0;
         $updated = 0;
+        $others = [
+            'season' => $options['season'],
+            'week' => $options['week'],
+            'season_type_id' => $options['season_type_id'],
+            'season_type_name' => $options['season_type_name']
+        ];
 
         if (isset($scores['contestID'])) {
 
             $data = NflScoreData::fromApiResponse($scores)->toArray();
+            $data = [
+                ...$data,
+                ...$others
+            ];
 
             $game = NflGame::updateOrCreate(
                 ['contest_id' => $data['contest_id']],
@@ -292,7 +310,10 @@ class FetchNflScores extends Command
 
                 $game = NflGame::updateOrCreate(
                     ['contest_id' => $data['contest_id']],
-                    $data
+                    [
+                        ...$data,
+                        ...$others
+                    ]
                 );
 
                 if ($game->wasRecentlyCreated) {

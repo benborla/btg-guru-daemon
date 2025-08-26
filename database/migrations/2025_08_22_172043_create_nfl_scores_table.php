@@ -17,6 +17,10 @@ return new class extends Migration
             // Basic identifiers
             $table->string('contest_id')->unique()->index(); // Primary game identifier
             $table->string('venue_id')->nullable();
+            $table->string('season')->nullable();
+            $table->string('season_type_id')->nullable();
+            $table->string('week')->nullable();
+            $table->string('season_type_name')->nullable();
             $table->string('venue_name')->nullable();
 
             // Game timing

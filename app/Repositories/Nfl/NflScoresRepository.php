@@ -51,36 +51,37 @@ class NflScoresRepository implements NflScoresRepositoryInterface
         return $query->orderBy('game_date')->get();
     }
 
-    public function getTeamsInfo() :Collection
+    public function getTeamsInfo($seasonTypeId) :Collection
     {
-        $scores = Cache::get($this->cacheKey . date('Y'));
+        $teams =  $this->getTournament()->where('id',$seasonTypeId)->map(function($item){
+            return collect($item['week'])->flatMap(function($a){
 
-        if (empty($scores)) return collect([]);
+                return collect($a['matches'])->flatMap(function($b){
+                    return collect($b['match'])->flatMap(function($c){
+                        return [
+                            [
+                                'id' => $c['awayteam']['id'],
+                                'name' => $c['awayteam']['name'],
+                            ],
+                            [
+                                'id' => $c['hometeam']['id'],
+                                'name' => $c['hometeam']['name'],
+                            ],
+                        ];
+                    });
+                });
 
-        // map teamsInfo
-        $scores = $scores->flatMap(function ($match) {
-            $home = $match['hometeam'];
-            $away = $match['awayteam'];
-            return [
-                $match['hometeam']['name'] => [
-                    'name' => $home['name'],
-                    'id' => $home['id'],
-                    'image_name' => str_replace(' ', '_', $home['name'])
-                ],
-                $match['awayteam']['name'] => [
-                    'name' => $away['name'],
-                    'id' => $away['id'],
-                    'image_name' => str_replace(' ', '_', $away['name'])
-                ],
-            ];
-        })->unique()->values();
+            });
+        })->first();
 
+        if (empty($teams)) return collect([]);
 
-        return $scores;
+        return $teams->unique('id');
     }
 
     public function getTeamInfo(string $teamId) : Collection
     {
+        $tournament = $this->getTournament();
         $data = Cache::get($this->cacheKey . date('Y'));
 
         if (empty($data)) return collect([]);
@@ -119,6 +120,92 @@ class NflScoresRepository implements NflScoresRepositoryInterface
         }
 
         return $data;
+    }
+
+    public function getTournament()
+    {
+        $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
+
+        if(empty($schedules)) return [];
+
+        return collect(json_decode($schedules->response, true)['shedules']['tournament']);
+    }
+
+    public function getSeasonTypes()
+    {
+
+        $tournament = $this->getTournament();
+        return $tournament->map(fn($item) => [
+            'id' => $item['id'],
+            'name' => $item['name'],
+        ]);
+    }
+
+    public function getWeeks($seasonTypeId)
+    {
+        $weeks = $this->getTournament()->where('id', $seasonTypeId)->map(function($item){
+            return collect($item['week'])->map(fn($i, $j) => $j+1);
+        })->first();
+
+        return $weeks;
+    }
+
+    public function getTeamSchedule($teamId, $season, $seasonType)
+    {
+        if (empty($teamId) || empty($season) || empty($seasonType)) {
+
+            return [];
+        }
+
+        $schedules = NflGame::getTeamSchedule($season, $seasonType);
+
+        $weeks = $this->getWeeks($seasonType)->mapWithKeys(function($week) use($schedules, $teamId){
+
+            $match = $schedules->where('week', $week);
+
+            // find the team
+            $match = $match->map(function($item) use($teamId){
+                $homeTeam = json_decode($item->hometeam, true);
+                $awayTeam = json_decode($item->awayteam,true);
+                $isHome = false;
+
+                if ($homeTeam['id'] == $teamId || $awayTeam['id'] == $teamId){
+                    return $item;                }
+
+            })->filter()->first();
+
+
+            if ($match == null) {
+                return [
+                    $week => [
+                        'match_status' => 'BYE'
+                    ]
+                ];
+            }
+
+            return [
+                $week => [
+                    ...$match->toArray(),
+                    'fumbles' => json_decode($match->fumbles, true),
+                    'punt_returns' => json_decode($match->punt_returns, true),
+                    'punting' => json_decode($match->punting, true),
+                    'awayteam' => json_decode($match->awayteam, true),
+                    'hometeam' => json_decode($match->hometeam, true),
+                    'defensive' => json_decode($match->defensive, true),
+                    'events' => json_decode($match->events, true),
+                    'team_stats' => json_decode($match->team_stats, true),
+                    'interceptions' => json_decode($match->interceptions, true),
+                    'kick_returns' => json_decode($match->kick_returns, true),
+                    'kicking' => json_decode($match->kicking, true),
+                    'passing' => json_decode($match->passing, true),
+                    'receiving' => json_decode($match->receiving, true),
+                    'rushing' => json_decode($match->rushing, true),
+                ]
+            ];
+
+        });
+
+        return $weeks;
     }
 }
 

@@ -39,16 +39,20 @@ class NflGame extends Model
         "time",
         "timer",
         "timezone",
-        "venu_id",
-        "venu_name"
+        "venue_id",
+        "venue_name",
+        "season",
+        "season_type_id",
+        "season_type_name",
+        "week",
     ];
 
     protected $casts = [
         'fumbles' => 'array',
         'punt_returns' => 'array',
         'punting' => 'array',
-        'awayteam' => 'array',
-        'hometeam' => 'array',
+        'awayteam' => 'json',
+        'hometeam' => 'json',
         'defensive' => 'array',
         'events' => 'array',
         'interceptions' => 'array',
@@ -58,4 +62,12 @@ class NflGame extends Model
         'receiving' => 'array',
         'rushing' => 'array'
     ];
+
+    public static function getTeamSchedule($season, $seasonType)
+    {
+        return static::where([
+            'season' => $season,
+            'season_type_id' => $seasonType
+        ])->get();
+    }
 }
