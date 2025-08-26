@@ -4,6 +4,7 @@ namespace App\Repositories\Nfl;
 
 use App\Dto\NflScoreData;
 use App\Dto\NflStandingsDto;
+use App\Models\NflApiResponse;
 use Illuminate\Support\Facades\Cache;
 use App\Models\NflGame;
 use App\Repositories\Interfaces\NflScoresRepositoryInterface;
@@ -95,24 +96,29 @@ class NflScoresRepository implements NflScoresRepositoryInterface
 
     public function getScores($date)
     {
-        // should be current week is the default if no date passed
-        /* $scores = NflGame::getCurrentWeek(); */
+        $scores = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
 
-        $scores = NflGame::all();
+        $data = [];
 
-        if ($date)
-            $scores = NflGame::where('date', '=', $date)->get();
+        if ($scores) {
+            $apiResponse = $scores->response->first();
 
-        return [
-            'scores' => [
-                'category' => [
-                    'id' => '1',
-                    'match' => $scores,
-                    "name" => "USA: NFL"
-                ],
-                "sport" => "football"
-            ]
-        ];
+            if (empty($date))
+            {
+                $data = $apiResponse;
+            }
+
+        }
+
+        return $data;
+
+    }
+
+    public function getSchedules($teamId)
+    {
+        $data =  NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
+
+        return [];
     }
 }
 
