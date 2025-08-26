@@ -96,18 +96,12 @@ class NflScoresRepository implements NflScoresRepositoryInterface
 
     public function getScores($date)
     {
-        $scores = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
+        $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
 
         $data = [];
 
-        if ($scores) {
-            $apiResponse = $scores->response->first();
-
-            if (empty($date))
-            {
-                $data = $apiResponse;
-            }
-
+        if ($schedules) {
+            $data['data'] = json_decode($schedules->response,true)['shedules']['tournament'];
         }
 
         return $data;

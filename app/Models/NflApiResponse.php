@@ -17,7 +17,7 @@ class NflApiResponse extends Model
      * @var array
      */
     protected $casts = [
-        'response' => 'collection',           // Simple collection
+        'response' => 'array',           // Simple collection
     ];
 
     /**
@@ -37,7 +37,7 @@ class NflApiResponse extends Model
      */
     public static function getFirstByField($field, $value)
     {
-        return static::where($field, $value)->first();
+        return static::where($field,'=', $value)->first();
     }
 
 }
