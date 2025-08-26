@@ -281,18 +281,16 @@ class FetchNflSchedules extends Command
 
                     // Convert to desired format (d.m.Y)
                     $formatted = $parsed->format('d.m.Y');
-                    dump($formatted);
-                    /* $this->call('nfl:fetch-scores', [ */
-                    /*     '--date' => $formatted, */
-                    /*     '--force' => true, */
-                    /*     '--store' => true */
-                    /* ]); */
+                    $this->call('nfl:fetch-scores', [
+                        '--date' => $formatted,
+                        '--force' => true,
+                        '--store' => true
+                    ]);
                 });
 
             });
         });
 
-        die;
 
         NflApiResponse::updateOrCreate(
             [ 'date_fetched' => date('Y-m-d') ],
