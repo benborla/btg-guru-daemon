@@ -13,24 +13,6 @@ class NflController extends Controller
         private NflScoresRepository $repository
     ) {}
 
-    public function scores(Request $request)
-    {
-        $week = $request->query('week');
-        $forceRefresh = $request->boolean('refresh');
-
-        /* if ($forceRefresh) { */
-        /*     $scores = $this->repository->refreshScores($week); */
-        /* } else { */
-            $scores = $this->repository->getScores($week);
-        /* } */
-
-        return response()->json([
-            'data' => $scores,
-            'cached' => !$forceRefresh,
-            'timestamp' => now()->toISOString(),
-        ]);
-    }
-
     public function liveScores()
     {
         return response()->json([
@@ -100,5 +82,14 @@ class NflController extends Controller
             'message' => count($standings) == 0 ? 'No team found' : 'Team found',
             'data' => $standings
         ]);
+    }
+
+    public function scores()
+    {
+        $date = request()->input('date');
+
+        return response()->json(
+            $this->repository->getScores($date)
+        );
     }
 }

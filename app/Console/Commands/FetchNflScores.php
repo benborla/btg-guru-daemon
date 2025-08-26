@@ -3,6 +3,7 @@
 // app/Console/Commands/FetchNflScores.php
 namespace App\Console\Commands;
 
+use App\Dto\NflScoreData;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -59,18 +60,18 @@ class FetchNflScores extends Command
                 $this->info('🌐 Fetching from API...');
                 $scores = $this->fetchFromApi($options);
 
-                if ($scores->isEmpty()) {
+                if (empty($scores)) {
                     $this->error('❌ No scores returned from API');
                     return Command::FAILURE;
                 }
 
                 // Cache the results
-                Cache::put($cacheKey, $scores, $cacheTtl);
+                Cache::put($cacheKey, collect($scores), $cacheTtl);
                 $fromCache = false;
             }
 
             // Display results
-            $this->displayResults($scores, $fromCache);
+            /* $this->displayResults($scores, $fromCache); */
 
             // Store in database if requested
             if ($this->option('store')) {
@@ -174,7 +175,7 @@ class FetchNflScores extends Command
     /**
      * Fetch data from API
      */
-    private function fetchFromApi(array $options): \Illuminate\Support\Collection
+    private function fetchFromApi(array $options): array
     {
         $params = ['json' => 1];
 
@@ -218,7 +219,7 @@ class FetchNflScores extends Command
             'options' => $options
         ]);
 
-        $scores = collect($data['scores']['category']['match'] ?? []);
+        $scores = $data['scores']['category']['match'] ?? [];
 
         // Filter live games if requested
         if ($options['live_only']) {
@@ -273,20 +274,21 @@ class FetchNflScores extends Command
     /**
      * Store results in database
      */
-    private function storeInDatabase(\Illuminate\Support\Collection $scores): void
+    private function storeInDatabase($scores): void
     {
         $this->info('💾 Storing in database...');
 
-        $bar = $this->output->createProgressBar($scores->count());
+        $bar = $this->output->createProgressBar(count($scores));
         $stored = 0;
         $updated = 0;
 
         foreach ($scores as $gameData) {
+            $data = NflScoreData::fromApiResponse($gameData)->toArray();
             $contestId = $gameData['contest_id'] ?? $gameData['id'] ?? uniqid();
 
             $game = NflGame::updateOrCreate(
-                ['contest_id' => $contestId],
-                $gameData
+                ['contest_id' => $data['contest_id']],
+                $data
             );
 
             if ($game->wasRecentlyCreated) {
