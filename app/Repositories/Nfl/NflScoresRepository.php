@@ -95,7 +95,13 @@ class NflScoresRepository implements NflScoresRepositoryInterface
 
     public function getScores($date)
     {
-        $scores = NflGame::where('date', '=', $date)->get();
+        // should be current week is the default if no date passed
+        /* $scores = NflGame::getCurrentWeek(); */
+
+        $scores = NflGame::all();
+
+        if ($date)
+            $scores = NflGame::where('date', '=', $date)->get();
 
         return [
             'scores' => [
