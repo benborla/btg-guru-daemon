@@ -42,4 +42,21 @@ class NflGame extends Model
             "venu_id",
            "venu_name"
     ];
+
+    protected $casts = [
+        'fumbles' => 'array',
+        'punt_returns' => 'array',
+        'punting' => 'array',
+        'awayteam' => 'array',
+        'hometeam' => 'array',
+        'defensive' => 'array',
+        'events' => 'array',
+        'interceptions' => 'array',
+        'kick_returns' => 'array',
+        'kicking' => 'array',
+        'passing' => 'array',
+        'receiving' => 'array',
+        'rushing' => 'array',
+        // add other JSON columns as needed
+    ];
 }

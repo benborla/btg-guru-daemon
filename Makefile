@@ -65,7 +65,7 @@ docker-api-afl-one-time:
 	docker compose exec app php artisan api:afl
 
 docker-nfl-scores:
-	docker compose exec app php artisan nfl:fetch-scores --force
+	docker compose exec app php artisan nfl:fetch-scores --force --store
 
 docker-nfl-standings:
 	docker compose exec app php artisan nfl:fetch-standings --force --season=2024
@@ -84,3 +84,6 @@ docker-api-afl-boradcast:
 
 docker-migrate:
 	docker compose exec app php artisan migrate
+
+docker-rollback:
+	docker compose exec app php artisan migrate:rollback

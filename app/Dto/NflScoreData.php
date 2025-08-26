@@ -63,6 +63,7 @@ class NflScoreData
             venue_name: $data['venue_name'] ?? '',
         );
     }
+
     /**
      * Convert to array using get_object_vars()
      */

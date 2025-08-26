@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Nfl;
 
+use App\Dto\NflScoreData;
 use App\Dto\NflStandingsDto;
 use Illuminate\Support\Facades\Cache;
 use App\Models\NflGame;
@@ -19,27 +20,6 @@ class NflScoresRepository implements NflScoresRepositoryInterface
         private NflGame $model
     ) {}
 
-    /**
-     * Get scores with database fallback
-     */
-    public function getScores(?string $week = null): Collection
-    {
-        try {
-            // Try API/cache first
-            $apiScores = $this->apiService->getScores($week);
-
-            if ($apiScores->isNotEmpty()) {
-                // Optionally store in database for historical data
-                $this->storeScores($apiScores);
-                return $apiScores;
-            }
-        } catch (\Exception $e) {
-            Log::error('Failed to get scores from API', ['error' => $e->getMessage()]);
-        }
-
-        // Fallback to database
-        return $this->getScoresFromDatabase($week);
-    }
 
     private function storeScores(Collection $scores): void
     {
@@ -111,6 +91,22 @@ class NflScoresRepository implements NflScoresRepositoryInterface
         $data = Cache::get($this->cacheKeyStanding . $season);
 
         return (new NflStandingsDto($data))->getTeamStandings($season, $teamId);
+    }
+
+    public function getScores($date)
+    {
+        $scores = NflGame::where('date', '=', $date)->get();
+
+        return [
+            'scores' => [
+                'category' => [
+                    'id' => '1',
+                    'match' => $scores,
+                    "name" => "USA: NFL"
+                ],
+                "sport" => "football"
+            ]
+        ];
     }
 }
 

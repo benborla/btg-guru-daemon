@@ -287,7 +287,7 @@ class FetchNflScores extends Command
             $contestId = $gameData['contest_id'] ?? $gameData['id'] ?? uniqid();
 
             $game = NflGame::updateOrCreate(
-                ['date' => $data['date']],
+                ['contest_id' => $data['contest_id']],
                 $data
             );
 
