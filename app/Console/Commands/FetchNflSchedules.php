@@ -271,7 +271,15 @@ class FetchNflSchedules extends Command
         $stored = 0;
         $updated = 0;
 
-        // get all the weeks date
+        NflApiResponse::updateOrCreate(
+            [ 'date_fetched' => date('Y-m-d') ],
+            [
+                'response' => json_encode($schedules),
+                'date_fetched' => date('Y-m-d')
+            ]
+        );
+
+        // get all scores
         collect($schedules->first()['tournament'])->map(function($season){
 
             $weeks = collect($season['week'])->map(function($game){
@@ -292,13 +300,6 @@ class FetchNflSchedules extends Command
         });
 
 
-        NflApiResponse::updateOrCreate(
-            [ 'date_fetched' => date('Y-m-d') ],
-            [
-                'response' => json_encode($schedules),
-                'date_fetched' => date('Y-m-d')
-            ]
-        );
 
         $bar->finish();
         $this->newLine();
