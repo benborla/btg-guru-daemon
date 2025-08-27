@@ -54,7 +54,7 @@ class NflController extends Controller
 
     public function teamsInfo() : JsonResponse
     {
-        $data = $this->repository->getTeamsInfo(1);
+        $data = $this->repository->getTeamsInfo(date('Y'));
 
         return response()->json($data);
     }
@@ -72,8 +72,8 @@ class NflController extends Controller
         });
 
 
-        $allTeams = $this->repository->getTeamsInfo($season)->sortBy('name');
-        $teamInfo = $allTeams->firstWhere('id', $teamId);
+        $allTeams = $this->repository->getTeamsInfo($season);
+        $teamInfo = $allTeams['AFC']->firstWhere('id', $teamId) ?? $allTeams['NFC']->firstWhere('id', $teamId);
 
         return response()->json([
             'selectedSeasonType' => $seasonTypes->where('id',$seasonTypeId),

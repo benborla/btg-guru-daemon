@@ -52,6 +52,113 @@ class NflScoresRepository
         return $query->orderBy('game_date')->get();
     }
 
+    private function getTeamTypes()
+    {
+        return [
+            'AFC' => [
+                'division' => [
+                    'east' => [
+                        'teams' => [
+                            '1692',
+                            '1689',
+                            '1681',
+                            '1709',
+                        ],
+                        'name' => 'AFC East Division'
+                    ],
+                    'west' => [
+                        'teams' => [
+                            '1708',
+                            '1691',
+                            '5566',
+                            '1702'
+                        ],
+                        'name' => 'AFC West Division'
+                    ],
+                    'north' => [
+                        'teams' => [
+                            '1679',
+                            '1699',
+                            '1694',
+                            '1683'
+                        ],
+                        'name' => 'AFC North Division'
+                    ],
+                    'south' => [
+                        'teams' => [
+                            '1705',
+                            '1706',
+                            '1687',
+                            '1697'
+                        ],
+                        'name' => 'AFC South Division'
+                    ]
+                ],
+            ],
+            'NFC' => [
+                'division' => [
+                    'east' => [
+                        'teams' => [
+                            '1680',
+                            '1710',
+                            '1686',
+                            '5753'
+                        ],
+                        'name' => 'NFC East Division'
+                    ],
+                    'west' => [
+                        'teams' => [
+                            '5117',
+                            '1696',
+                            '1707',
+                            '1704'
+                        ],
+                        'name' => 'NFC West Division'
+                    ],
+                    'north' => [
+                        'teams' => [
+                            '1703',
+                            '1695',
+                            '1698',
+                            '1701'
+                        ],
+                        'name' => 'NFC North Division'
+                    ],
+                    'south' => [
+                        'teams' => [
+                            '1690',
+                            '1682',
+                            '1693',
+                            '1684'
+                        ],
+                        'name' => 'NFC South Division'
+                    ]
+                ],
+            ]
+
+        ];
+    }
+
+    private function getTeamTypesFlat()
+    {
+        return collect($this->getTeamTypes())->mapWithKeys(function($item, $key){
+
+            return [
+                $key => collect($item['division'])->flatMap(fn($a) => $a['teams'])
+            ];
+        });
+    }
+
+    private function isAfc($teamId)
+    {
+        return in_array($teamId, $this->getTeamTypesFlat()['AFC']->toArray());
+    }
+
+    private function isNfc($teamId)
+    {
+        return in_array($teamId, $this->getTeamTypesFlat()['NFC']->toArray());
+    }
+
     public function getTeamsInfo($season) :Collection
     {
         $teams =  $this->getTournament($season)->map(function($item){
@@ -59,16 +166,25 @@ class NflScoresRepository
 
                 return collect($a['matches'])->flatMap(function($b){
                     return collect($b['match'])->flatMap(function($c){
+
+                        $isAfcHome = $this->isAfc($c['hometeam']['id']);
+                        $isNfcHome = $this->isNfc($c['hometeam']['id']);
+
+                        $isAfcAway= $this->isAfc($c['awayteam']['id']);
+                        $isNfcAway = $this->isNfc($c['awayteam']['id']);
+
                         return [
                             [
                                 'id' => $c['awayteam']['id'],
                                 'name' => $c['awayteam']['name'],
                                 'image_name' => str_replace(' ', '_', $c['awayteam']['name']),
+                                'team_division' => $isAfcAway ? 'AFC' : ($isNfcAway  ? 'NFC' : 'no_team')
                             ],
                             [
                                 'id' => $c['hometeam']['id'],
                                 'name' => $c['hometeam']['name'],
                                 'image_name' => str_replace(' ', '_', $c['hometeam']['name']),
+                                'team_division' => $isAfcHome ? 'AFC' : ($isNfcHome  ? 'NFC' : 'no_team')
                             ],
                         ];
                     });
@@ -79,7 +195,12 @@ class NflScoresRepository
 
         if (empty($teams)) return collect([]);
 
-        return $teams->unique('id');
+        $teams = $teams->unique('id');
+
+        return collect([
+            'AFC' => $teams->where('team_division', 'AFC')->sortBy('name'),
+            'NFC' => $teams->where('team_division', 'NFC')->sortBy('name')
+        ]);
     }
 
     public function getTeamInfo(string $teamId) : Collection
