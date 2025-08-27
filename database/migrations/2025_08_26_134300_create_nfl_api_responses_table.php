@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('nfl_api_responses', function (Blueprint $table) {
             $table->id();
             $table->longText('response');
+            $table->string('season');
             $table->string('date_fetched');
             $table->timestamps();
         });

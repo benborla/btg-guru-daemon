@@ -274,6 +274,7 @@ class FetchNflSchedules extends Command
         NflApiResponse::updateOrCreate(
             [ 'date_fetched' => date('Y-m-d') ],
             [
+                'season' => $schedules['shedules']['season'],
                 'response' => json_encode($schedules),
                 'date_fetched' => date('Y-m-d')
             ]

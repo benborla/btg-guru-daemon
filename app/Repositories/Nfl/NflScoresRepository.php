@@ -11,7 +11,7 @@ use App\Repositories\Interfaces\NflScoresRepositoryInterface;
 use App\Services\Nfl\NflApiService;
 use Illuminate\Support\Collection;
 
-class NflScoresRepository implements NflScoresRepositoryInterface
+class NflScoresRepository
 {
     protected $cacheKey = 'nfl_scores_season_';
     protected $cacheKeyStanding = 'nfl-standings_season_';
@@ -51,9 +51,9 @@ class NflScoresRepository implements NflScoresRepositoryInterface
         return $query->orderBy('game_date')->get();
     }
 
-    public function getTeamsInfo($seasonTypeId) :Collection
+    public function getTeamsInfo($season) :Collection
     {
-        $teams =  $this->getTournament()->where('id',$seasonTypeId)->map(function($item){
+        $teams =  $this->getTournament($season)->map(function($item){
             return collect($item['week'])->flatMap(function($a){
 
                 return collect($a['matches'])->flatMap(function($b){
@@ -62,10 +62,12 @@ class NflScoresRepository implements NflScoresRepositoryInterface
                             [
                                 'id' => $c['awayteam']['id'],
                                 'name' => $c['awayteam']['name'],
+                                'image_name' => str_replace(' ', '_', $c['awayteam']['name']),
                             ],
                             [
                                 'id' => $c['hometeam']['id'],
                                 'name' => $c['hometeam']['name'],
+                                'image_name' => str_replace(' ', '_', $c['hometeam']['name']),
                             ],
                         ];
                     });
@@ -122,9 +124,15 @@ class NflScoresRepository implements NflScoresRepositoryInterface
         return $data;
     }
 
-    public function getTournament()
+    public function getTournament($season = null)
     {
-        $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
+        $schedules = NflApiResponse::where(
+            [
+                'date_fetched' => date('Y-m-d'),
+                'season' => $season ?? date('Y')
+            ]
+        )->first();
+
 
         if(empty($schedules)) return [];
 

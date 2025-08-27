@@ -8,6 +8,7 @@ class NflApiResponse extends Model
 {
     protected $fillable = [
         'response',
+        'season',
         'date_fetched'
     ];
 

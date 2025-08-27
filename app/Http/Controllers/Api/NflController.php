@@ -71,7 +71,7 @@ class NflController extends Controller
         });
 
 
-        $allTeams = $this->repository->getTeamsInfo($seasonTypeId)->sortBy('name');
+        $allTeams = $this->repository->getTeamsInfo($season)->sortBy('name');
         $teamInfo = $allTeams->firstWhere('id', $teamId);
 
         return response()->json([
