@@ -67,6 +67,7 @@ class NflController extends Controller
         $seasonTypes = $this->repository->getSeasonTypes();
         $weeksData = collect($seasonTypes)->map(function($item, $i) use($teamId, $seasonTypeId, $season){
             $item['weeks'] = $this->repository->getTeamSchedule($teamId, $season, $item['id']);
+            $item['weeks_info'] = $this->repository->getWeeksInfo($item['id']);
             return $item;
         });
 

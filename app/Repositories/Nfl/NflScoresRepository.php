@@ -10,6 +10,7 @@ use App\Models\NflGame;
 use App\Repositories\Interfaces\NflScoresRepositoryInterface;
 use App\Services\Nfl\NflApiService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class NflScoresRepository
 {
@@ -158,6 +159,20 @@ class NflScoresRepository
         return $weeks;
     }
 
+    public function getWeeksInfo($seasonTypeId)
+    {
+        $weeks = $this->getTournament()->where('id', $seasonTypeId)->map(function($item){
+            return collect($item['week'])->map(fn($i, $j) => ['week' => $j+1,
+                'week_name' => $i['name'],
+                'week_initials' =>  implode('', array_map(function($word) {
+                    return strtoupper($word[0]);
+                }, explode(' ', $i['name'])))
+            ]);
+        })->first();
+
+        return $weeks;
+    }
+
     public function getTeamSchedule($teamId, $season, $seasonType)
     {
         if (empty($teamId) || empty($season) || empty($seasonType)) {
@@ -175,10 +190,21 @@ class NflScoresRepository
             $match = $match->map(function($item) use($teamId){
                 $homeTeam = json_decode($item->hometeam, true);
                 $awayTeam = json_decode($item->awayteam,true);
+                $item['home_image_name'] = str_replace(' ', '_', $homeTeam['name']);
+                $item['away_image_name'] = str_replace(' ', '_', $awayTeam['name']);
+
                 $isHome = false;
 
-                if ($homeTeam['id'] == $teamId || $awayTeam['id'] == $teamId){
-                    return $item;                }
+                if ($homeTeam['id'] == $teamId ){
+                    $item['isHome'] = true;
+                    $item['home_result'] = $homeTeam['totalscore'] > $awayTeam['totalscore'] ? 'W' : 'L';
+                    return $item;
+
+                } else if ($awayTeam['id'] == $teamId) {
+                    $item['isHome'] = false;
+                    $item['away_result'] = $awayTeam['totalscore'] > $homeTeam['totalscore'] ? 'W' : 'L';
+                    return $item;
+                }
 
             })->filter()->first();
 
