@@ -63,7 +63,14 @@ class NflController extends Controller
     {
         $teamId = request()->input('teamId');
         $seasonTypeId = request()->input('seasonTypeId');
+        $season = request()->input('season') ?? date('Y');
         $seasonTypes = $this->repository->getSeasonTypes();
+        $weeksData = collect($seasonTypes)->map(function($item, $i) use($teamId, $seasonTypeId, $season){
+            $item['weeks'] = $this->repository->getTeamSchedule($teamId, $season, $item['id']);
+            return $item;
+        });
+
+
         $allTeams = $this->repository->getTeamsInfo($seasonTypeId)->sortBy('name');
         $teamInfo = $allTeams->firstWhere('id', $teamId);
 
@@ -72,8 +79,7 @@ class NflController extends Controller
             'teams' => $allTeams,
             'teamInfo' => $teamInfo ?? [],
             'seasonTypes' => $seasonTypes,
-            'weeks' => $this->repository->getWeeks($seasonTypeId),
-            'data' => $this->repository->getTeamSchedule($teamId, date('Y'), $seasonTypeId)
+            'data' => $weeksData
         ]);
     }
 
