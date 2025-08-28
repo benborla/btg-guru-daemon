@@ -161,7 +161,11 @@ class NflScoresRepository
 
     public function getTeamsInfo($season) :Collection
     {
-        $teams =  $this->getTournament($season)->map(function($item){
+        $tournament = $this->getTournament($season);
+
+        if (empty($tournament)) return collect([]);
+
+        $teams =  $tournament->map(function($item){
             return collect($item['week'])->flatMap(function($a){
 
                 return collect($a['matches'])->flatMap(function($b){
@@ -265,6 +269,9 @@ class NflScoresRepository
     {
 
         $tournament = $this->getTournament();
+
+        if (empty($tournament)) return [];
+
         return $tournament->map(fn($item) => [
             'id' => $item['id'],
             'name' => $item['name'],
@@ -315,17 +322,17 @@ class NflScoresRepository
                 $item['away_image_name'] = str_replace(' ', '_', $awayTeam['name']);
                 $item['away_result_score'] = $awayTeam['totalscore'];
                 $item['home_result_score'] = $homeTeam['totalscore'];
-                $item['total'] = $homeTeam['totalscore'] + $awayTeam['totalscore'];
+                $item['total'] = (int) $homeTeam['totalscore'] + (int) $awayTeam['totalscore'];
 
                 $isHome = false;
 
                 if ($homeTeam['id'] == $teamId ){
                     $item['isHome'] = true;
                     $item['court'] = 'HM';
-                    $q1 = $homeTeam['q1'];
-                    $q2 = $homeTeam['q2'];
-                    $q3 = $homeTeam['q3'];
-                    $q4 = $homeTeam['q4'];
+                    $q1 = (int) $homeTeam['q1'];
+                    $q2 = (int) $homeTeam['q2'];
+                    $q3 = (int) $homeTeam['q3'];
+                    $q4 = (int) $homeTeam['q4'];
                     $item['home_q1'] = $q1;
                     $item['home_q2'] = $q2;
                     $item['home_q3'] = $q3;

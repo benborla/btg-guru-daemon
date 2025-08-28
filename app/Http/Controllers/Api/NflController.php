@@ -76,7 +76,6 @@ class NflController extends Controller
         $teamInfo = $allTeams['AFC']->firstWhere('id', $teamId) ?? $allTeams['NFC']->firstWhere('id', $teamId);
 
         return response()->json([
-            'selectedSeasonType' => $seasonTypes->where('id',$seasonTypeId),
             'teams' => $allTeams,
             'teamInfo' => $teamInfo ?? [],
             'seasonTypes' => $seasonTypes,
