@@ -280,9 +280,17 @@ class NflScoresRepository
 
     public function getWeeks($seasonTypeId)
     {
-        $weeks = $this->getTournament()->where('id', $seasonTypeId)->map(function($item){
+        $weeks = $this->getTournament()->where('id', $seasonTypeId)->map(function($item) use($seasonTypeId){
+            if ($seasonTypeId == 1) {
+                return collect($item['week'])->map(function($i, $j) use($seasonTypeId) {
+                    if ($i['name'] != 'Hall of Fame Weekend') {
+                        return $j+1;
+                    }
+                });
+            }
+
             return collect($item['week'])->map(fn($i, $j) => $j+1);
-        })->first();
+        })->first()->filter();
 
         return $weeks;
     }
@@ -313,20 +321,36 @@ class NflScoresRepository
         $weeks = $this->getWeeks($seasonType)->mapWithKeys(function($week) use($schedules, $teamId, $seasonType){
 
             $match = $schedules->where('week', $week);
+            $teamAVG = collect($this->computeTeamAvg($schedules, $teamId,$seasonType));
 
             // find the team
-            $match = $match->map(function($item) use($teamId){
+            $match = $match->map(function($item, $i) use($teamId, $match, $teamAVG, $seasonType){
+
                 $homeTeam = json_decode($item->hometeam, true);
                 $awayTeam = json_decode($item->awayteam,true);
                 $item['home_image_name'] = str_replace(' ', '_', $homeTeam['name']);
                 $item['away_image_name'] = str_replace(' ', '_', $awayTeam['name']);
-                $item['away_result_score'] = (int) $awayTeam['totalscore'] ;
+                $item['home_team_id'] = $homeTeam['id'];
+                $item['away_team_id'] = $awayTeam['id'];
                 $item['home_result_score'] = (int) $homeTeam['totalscore'] ;
+                $item['away_result_score'] = (int) $awayTeam['totalscore'] ;
                 $item['total'] = (int) $homeTeam['totalscore'] + (int) $awayTeam['totalscore'];
 
                 $isHome = false;
 
+                $homeTotalScore = (int)$homeTeam['totalscore'];
+                $awayTotalScore = (int) $awayTeam['totalscore'];
+                $homeResult = '-';
+                $awayResult = '-';
+
+                if ($homeTotalScore > 0 && $awayTotalScore > 0) {
+                    $homeResult = $homeTeam['totalscore'] > $awayTeam['totalscore'] ? 'W' : 'L';;
+                    $awayResult = $awayTeam['totalscore'] > $homeTeam['totalscore'] ? 'W' : 'L';
+                }
+
                 if ($homeTeam['id'] == $teamId ){
+
+
                     $item['isHome'] = true;
                     $item['court'] = 'HM';
                     $q1 = (int) $homeTeam['q1'];
@@ -340,7 +364,8 @@ class NflScoresRepository
                     $item['home_1h'] = $q1 + $q2;
                     $item['home_2h'] = $q3 + $q4;
                     $item['home_to'] = $q1 + $q2 + $q3 + $q4;
-                    $item['home_result'] = $homeTeam['totalscore'] > $awayTeam['totalscore'] ? 'W' : 'L';
+                    $item['home_result'] =  $homeResult;
+                    $item['home_result_class'] = strtolower($homeResult);
                     $item['home_avg_for'] = 0;
                     $item['home_avg_agt'] = 0;
                     $item['home_avg_to'] = 0;
@@ -361,7 +386,8 @@ class NflScoresRepository
                     $item['away_2h'] = $q3 + $q4;
                     $item['away_to'] = $q1 + $q2 + $q3 + $q4;
                     $item['court'] = 'AW';
-                    $item['away_result'] = $awayTeam['totalscore'] > $homeTeam['totalscore'] ? 'W' : 'L';
+                    $item['away_result'] = $awayResult;
+                    $item['away_result_class'] = strtolower($awayResult);
                     $item['away_avg_for'] = 0;
                     $item['away_avg_agt'] = 0;
                     $item['away_avg_to'] = 0;
@@ -370,7 +396,6 @@ class NflScoresRepository
                 }
 
             })->filter()->first();
-
 
             if ($match == null) {
                 return [
@@ -399,10 +424,90 @@ class NflScoresRepository
                     'rushing' => json_decode($match->rushing, true),
                 ]
             ];
+        });
+
+        $withAvgs = $weeks->values()->map(function($item,$i) use($weeks, $teamId) {
+
+            if (isset($item['match_status'])) {
+                return $item;
+            }
+
+
+
+            if ($item['season_type_id'] == 1)
+            {
+                $item['avg_for'] = '-';
+                $item['avg_agt'] = '-';
+                $item['avg_to'] = '-';
+            } else {
+
+                if ($i == 0) {
+                    $item['avg_for'] = $item['home_result_score'];
+                    $item['avg_agt'] = $item['away_result_score'];
+                    $item['avg_to'] =  $item['avg_for'] + $item['avg_agt'];
+                } else {
+
+                    $teamPoints = $weeks->take($i+1);
+                    $avgFor =number_format(round($teamPoints->avg('home_result_score')),0);
+                    $avgAgt =number_format(round($teamPoints->avg('away_result_score')),0);
+                    $item['avg_for'] = $avgFor;
+                    $item['avg_agt'] = $avgAgt;
+                    $item['avg_to'] =  $avgFor + $avgAgt;
+                }
+
+            }
+
+            return $item;
+        });
+
+        return $withAvgs;
+    }
+
+    private function computeTeamAvg($schedules, $teamId, $seasonTypeId)
+    {
+        $i = $seasonTypeId == 1 ? 2 : 1;
+        $filtered = $schedules;
+
+        if ($seasonTypeId == 1) {
+            $filtered = $schedules->filter(fn($a) => $a['week'] != 1);
+        }
+
+        return $filtered->map(function($a) use($teamId){
+            $homeTeam = json_decode($a->hometeam, true);
+            $awayTeam = json_decode($a->awayteam,true);
+
+            $a['home_for'] = $homeTeam['totalscore'];
+            $a['away_for'] = $awayTeam['totalscore'];
+
+            return $a;
 
         });
 
-        return $weeks;
+        /* $nextMatch = $match->take($iterator + $i)->map(function($item) use($teamId){ */
+        /*     $homeTeam = json_decode($item->hometeam, true); */
+        /*     $awayTeam = json_decode($item->awayteam,true); */
+        /*     $item['avg_for'] = (int) $homeTeam['totalscore']; */
+        /*     $item['avg_agt'] = (int) $awayTeam['totalscore']; */
+        /*     $item['home_team_id'] = $homeTeam['id']; */
+        /*     $item['away_team_id'] = $awayTeam['id']; */
+        /**/
+        /*     if ($homeTeam['id'] == $teamId) { */
+        /*         $item['home'] = true; */
+        /*         return $item; */
+        /*     } */
+        /**/
+        /*     if ($awayTeam['id'] == $teamId) { */
+        /*         $item['away'] = true; */
+        /*         return $item; */
+        /*     } */
+        /**/
+        /* }); */
+
+        /* if ($nextMatch != null) { */
+        /*     dd($nextMatch); */
+        /*     return $nextMatch->filter(); */
+        /* } */
+
     }
 }
 
