@@ -33,23 +33,23 @@ class AflFormatSchedule extends Command
     {
         $this->info('Updating & Formatting AFL schedule...');
         $schedule = AflApiResponse::query()->getLatestSchedule()->first();
-        
+
         if (!$schedule) {
             $this->error('No schedule data found in API responses');
             return Command::FAILURE;
         }
-        
+
         try {
             DB::beginTransaction();
-            
+
             AflSchedule::truncate();
             $this->info('Cleared existing schedule data');
-            
+
             $this->processScheduleData($schedule->response);
-            
+
             DB::commit();
             $this->info('AFL schedule data successfully updated');
-            
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
             DB::rollBack();
@@ -58,11 +58,11 @@ class AflFormatSchedule extends Command
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return Command::FAILURE;
         }
     }
-    
+
     /**
      * Process the schedule data from the API response and store it in the database.
      *
@@ -75,36 +75,39 @@ class AflFormatSchedule extends Command
         if (!isset($response['results']['tournament']['round'])) {
             throw new \Exception('Invalid API response structure: missing rounds data');
         }
-        
+
         $rounds = $response['results']['tournament']['round'];
         $schedulesAdded = 0;
-        
+
         foreach ($rounds as $round) {
             if (!isset($round['week'])) {
                 continue;
             }
-            
+
             $weeks = is_array($round['week']) ? $round['week'] : [$round['week']];
-            
+
             foreach ($weeks as $week) {
                 $weekNumber = $week['@number'];
-                
+
                 if (!isset($week['match'])) {
                     continue;
                 }
-                
+
                 $matches = is_array($week['match']) ? $week['match'] : [$week['match']];
-                
+
+                $matches = isset($matches['@date']) ? [$matches] : $matches;
+
+
                 foreach ($matches as $match) {
                     $this->createScheduleRecord($match, $weekNumber);
                     $schedulesAdded++;
                 }
             }
         }
-        
+
         $this->info("Added {$schedulesAdded} schedule records");
     }
-    
+
     /**
      * Create a schedule record from match data.
      *
@@ -117,15 +120,15 @@ class AflFormatSchedule extends Command
         AflSchedule::create([
             'round' => $weekNumber,
             'match_id' => $match['@id'],
-            'date' => $match['@date'],
-            'time' => $match['@time'],
-            'status' => $match['@status'],
-            'venue' => $match['@venue'],
-            'local_team' => $this->cleanTeamData($match['localteam']),
+            'date' => $match['@date'] ?? "",
+            'time' => $match['@time'] ?? "",
+            'status' => $match['@status'] ?? "",
+            'venue' => $match['@venue'] ?? "",
+            'local_team' =>  $this->cleanTeamData($match['localteam']),
             'visitor_team' => $this->cleanTeamData($match['visitorteam']),
         ]);
     }
-    
+
     /**
      * Clean team data by removing @ prefix from keys.
      *

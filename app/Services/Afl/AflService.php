@@ -353,7 +353,11 @@ class AflService
 
             $totalFor = $avg->merge($visitorAvg)->sum();
             $totalAgt = $visitorAgt->merge($agt)->sum();
+            $total = 0;
 
+            if ($totalFor > 0 && $totalAgt > 0) {
+                $total = round(($totalFor + $totalAgt) / $validRounds ,0 );
+            }
 
             $rounds = $data->map(function($a) {
                 return $a->round;
@@ -363,10 +367,9 @@ class AflService
                 'rounds' => "{$rounds[0]} - {$rounds[count($rounds) -1]}",
                 'pointsFor' => $pointsFor,
                 'pointsAgt' => $pointsAgt,
-                'total' => round(($totalFor + $totalAgt) / $validRounds ,0 )
+                'total' =>  $total
             ];
         });
-
         // SEA computattion
         $sea = [
            'rounds' => 'SEA',
