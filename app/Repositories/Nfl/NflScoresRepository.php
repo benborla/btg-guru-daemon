@@ -310,7 +310,7 @@ class NflScoresRepository
 
         $schedules = NflGame::getTeamSchedule($season, $seasonType);
 
-        $weeks = $this->getWeeks($seasonType)->mapWithKeys(function($week) use($schedules, $teamId){
+        $weeks = $this->getWeeks($seasonType)->mapWithKeys(function($week) use($schedules, $teamId, $seasonType){
 
             $match = $schedules->where('week', $week);
 
@@ -320,8 +320,8 @@ class NflScoresRepository
                 $awayTeam = json_decode($item->awayteam,true);
                 $item['home_image_name'] = str_replace(' ', '_', $homeTeam['name']);
                 $item['away_image_name'] = str_replace(' ', '_', $awayTeam['name']);
-                $item['away_result_score'] = $awayTeam['totalscore'];
-                $item['home_result_score'] = $homeTeam['totalscore'];
+                $item['away_result_score'] = (int) $awayTeam['totalscore'] ;
+                $item['home_result_score'] = (int) $homeTeam['totalscore'] ;
                 $item['total'] = (int) $homeTeam['totalscore'] + (int) $awayTeam['totalscore'];
 
                 $isHome = false;
@@ -333,32 +333,38 @@ class NflScoresRepository
                     $q2 = (int) $homeTeam['q2'];
                     $q3 = (int) $homeTeam['q3'];
                     $q4 = (int) $homeTeam['q4'];
-                    $item['home_q1'] = $q1;
-                    $item['home_q2'] = $q2;
-                    $item['home_q3'] = $q3;
-                    $item['home_q4'] = $q4;
+                    $item['home_q1'] = $q1 ?? 0;
+                    $item['home_q2'] = $q2 ?? 0;
+                    $item['home_q3'] = $q3 ?? 0;
+                    $item['home_q4'] = $q4 ?? 0;
                     $item['home_1h'] = $q1 + $q2;
                     $item['home_2h'] = $q3 + $q4;
                     $item['home_to'] = $q1 + $q2 + $q3 + $q4;
                     $item['home_result'] = $homeTeam['totalscore'] > $awayTeam['totalscore'] ? 'W' : 'L';
+                    $item['home_avg_for'] = 0;
+                    $item['home_avg_agt'] = 0;
+                    $item['home_avg_to'] = 0;
 
                     return $item;
 
                 } else if ($awayTeam['id'] == $teamId) {
                     $item['isHome'] = false;
-                    $q1 = $awayTeam['q1'];
-                    $q2 = $awayTeam['q2'];
-                    $q3 = $awayTeam['q3'];
-                    $q4 = $awayTeam['q4'];
-                    $item['away_q1'] = $q1;
-                    $item['away_q2'] = $q2;
-                    $item['away_q3'] = $q3;
-                    $item['away_q4'] = $q4;
+                    $q1 = (int) $awayTeam['q1'];
+                    $q2 = (int) $awayTeam['q2'];
+                    $q3 = (int) $awayTeam['q3'];
+                    $q4 = (int) $awayTeam['q4'];
+                    $item['away_q1'] = $q1 ?? 0;
+                    $item['away_q2'] = $q2 ?? 0;
+                    $item['away_q3'] = $q3 ?? 0;
+                    $item['away_q4'] = $q4 ?? 0;
                     $item['away_1h'] = $q1 + $q2;
                     $item['away_2h'] = $q3 + $q4;
                     $item['away_to'] = $q1 + $q2 + $q3 + $q4;
                     $item['court'] = 'AW';
                     $item['away_result'] = $awayTeam['totalscore'] > $homeTeam['totalscore'] ? 'W' : 'L';
+                    $item['away_avg_for'] = 0;
+                    $item['away_avg_agt'] = 0;
+                    $item['away_avg_to'] = 0;
 
                     return $item;
                 }
