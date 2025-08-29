@@ -32,7 +32,8 @@ if (!function_exists('get_schedules')) {
             ['start' => '2025-07-31', 'end' => '2025-08-03', 'round' => 21],
             ['start' => '2025-08-07', 'end' => '2025-08-10', 'round' => 22],
             ['start' => '2025-08-15', 'end' => '2025-08-17', 'round' => 23],
-            ['start' => '2025-08-22', 'end' => '2025-08-22', 'round' => 24]
+            ['start' => '2025-08-21', 'end' => '2025-08-27', 'round' => 24],
+            ['start' => '2025-09-04', 'end' => '2025-09-07', 'round' => 25]
         ];
     }
 }
@@ -92,7 +93,7 @@ if (!function_exists('get_current_round')) {
         // Get the current round based on today's date using proximity logic
         $now = Carbon::now('Australia/Sydney');
         $rounds = get_schedules();
-        
+
         // First check if today falls within any round's date range
         foreach ($rounds as $round) {
             $roundStart = Carbon::parse($round['start'], 'Australia/Sydney')->startOfDay();
@@ -104,7 +105,7 @@ if (!function_exists('get_current_round')) {
                 return $round;
             }
         }
-        
+
         // If we're not within any round's date range, find the next upcoming round first
         // If no upcoming round, then find the closest past round
         $nextRound = null;
@@ -115,7 +116,7 @@ if (!function_exists('get_current_round')) {
         foreach ($rounds as $round) {
             $roundStart = Carbon::parse($round['start'], 'Australia/Sydney')->startOfDay();
             $roundEnd = Carbon::parse($round['end'], 'Australia/Sydney')->endOfDay();
-            
+
             if ($now->lt($roundStart)) {
                 // Round is in the future - candidate for next round
                 $distance = abs($now->diffInSeconds($roundStart, false));
@@ -250,7 +251,7 @@ if (!function_exists('has_live_match_ongoing')) {
 if (!function_exists('get_time_until_next_match')) {
     /**
      * Get the time until the next AFL match
-     * 
+     *
      * @return array|null Returns an array with 'hours' and 'minutes' until next match, or null if no upcoming match found
      */
     function get_time_until_next_match()
