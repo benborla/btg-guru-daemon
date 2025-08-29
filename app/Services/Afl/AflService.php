@@ -178,7 +178,7 @@ class AflService
     {
         $mapping =  [
             '25' => [
-                'name' => 'FW1',
+                'name' => 'FW',
                 'full_name' => 'Finals Week 1',
                 'bg_color' => '#0d6efd'
             ],
