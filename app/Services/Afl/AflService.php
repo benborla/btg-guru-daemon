@@ -174,23 +174,27 @@ class AflService
         return $this->analyzer->getAllTeamNamesInfo()->sortBy('name');
     }
 
-    private function aflPlayOffMappingNames($round)
+    public function aflPlayOffMappingNames($round)
     {
         $mapping =  [
             '25' => [
                 'name' => 'FW1',
+                'full_name' => 'Finals Week 1',
                 'bg_color' => '#0d6efd'
             ],
             '26' => [
                 'name' => 'SF',
+                'full_name' => 'Semi Finals',
                 'bg_color' => '#0d6efd'
             ],
             '27' => [
                 'name' => 'PF',
+                'full_name' => ' Preliminary Finals',
                 'bg_color' => '#0d6efd'
             ],
             '28' => [
                 'name' => 'GF',
+                'full_name' => 'Grand Finals',
                 'bg_color' => '#0d6efd'
             ],
         ];

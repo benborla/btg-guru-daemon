@@ -206,7 +206,7 @@ class AflController extends Controller
                 return response()->json([
                     'match_date' => $data->date,
                     'source' => 'proxy_server',
-                    'round' => (int) $data->round,
+                    'round' => $this->aflService->aflPlayOffMappingNames($data->round)['full_name'] ?? $data->round,
                     '@status' => $data->status,
                     '@date' => $data->date,
                     '@time' => $data->time,
@@ -242,6 +242,7 @@ class AflController extends Controller
             }
 
             $response = process_match_data($data, $matchId, $this->aflService);
+
         }
 
         return response()->json($response);
