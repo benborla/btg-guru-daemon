@@ -174,6 +174,30 @@ class AflService
         return $this->analyzer->getAllTeamNamesInfo()->sortBy('name');
     }
 
+    private function aflPlayOffMappingNames($round)
+    {
+        $mapping =  [
+            '25' => [
+                'name' => 'FW1',
+                'bg_color' => '#0d6efd'
+            ],
+            '26' => [
+                'name' => 'SF',
+                'bg_color' => '#0d6efd'
+            ],
+            '27' => [
+                'name' => 'PF',
+                'bg_color' => '#0d6efd'
+            ],
+            '28' => [
+                'name' => 'GF',
+                'bg_color' => '#0d6efd'
+            ],
+        ];
+
+        return isset($mapping[$round]) ? $mapping[$round] : $round;
+    }
+
     public function getHistorySchedules($teamId = null)
     {
         $scheduleData = AflSchedule::all();
@@ -246,13 +270,17 @@ class AflService
         }
         $roundsInfo = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
             $roundData = $scheduleData->where('round', $round);
+            $roundName = $this->aflPlayOffMappingNames($round);
             if ($roundData->count() > 1) {
-                return $roundData->values()->mapWithKeys(function($a, $i) use ($round){
+                return $roundData->values()->mapWithKeys(function($a, $i) use ($round, $roundName){
                     $newRound = $round . "(" . $i + 1 .")";
+
                     return [
                         $newRound => [
                             'round' => $round,
-                            'match_id' => $a['match_id']
+                            'match_id' => $a['match_id'],
+                            'round_name' => $roundName['name'] ?? $round,
+                            'bg_color' => $roundName['bg_color'] ?? ''
                         ]
                     ];
                 });
@@ -263,15 +291,28 @@ class AflService
 
                 return [$round => [
                     'round' => $first['round'] ?? $round,
+                    'round_name' => $roundName['name'] ?? $round,
+                    'bg_color' => $roundName['bg_color'] ?? '',
                     'match_id' => $first['match_id'] ?? null
                 ] ?: (object)[
                         'round' => $round,
+                        'round_name' => $roundName['name'] ?? $round,
+                        'bg_color' => $roundName['bg_color'] ?? '',
                         'status' => 'BYE', // or whatever default you want,
                         'match_status' => 'BYE', // or whatever default you want
                     ]];
             }
 
         });
+
+        /* $roundsInfo->put('26', ['round' => '26', 'round_name' => $this->aflPlayOffMappingNames(26)['name'], 'bg_color' => $this->aflPlayOffMappingNames(26)['bg_color'],  'match_id' => '1234']); */
+        /* $roundsInfo->put('27', ['round' => '27', 'round_name' => $this->aflPlayOffMappingNames(27)['name'], 'bg_color' => $this->aflPlayOffMappingNames(27)['bg_color'],  'match_id' => '1234']); */
+        /* $roundsInfo->put('28', [ */
+        /*     'round' => '28', */
+        /*     'round_name' => $this->aflPlayOffMappingNames(28)['name'], */
+        /*     'bg_color' => $this->aflPlayOffMappingNames(28)['bg_color'], 'match_id' => '1234' */
+        /* ] */
+        /* ); */
 
         // to flag BYE
         $completeSchedule = $completeRounds->mapWithKeys(function ($round) use ($scheduleData) {
