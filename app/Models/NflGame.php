@@ -78,7 +78,7 @@ class NflGame extends Model
             'season' => $season,
         ])->get();
 
-        $filtered =  $data->groupBy('week')->map(function($matches) {
+        $filtered =  $data->groupBy('season_type_id')->map(function($matches) {
             $matchesWithActualDate = $matches->map(function($match){
 
                 $date = Carbon::createFromFormat('d.m.Y', $match->formatted_date)->format('Y-m-d');
@@ -88,15 +88,15 @@ class NflGame extends Model
             });
 
             $minDate = $matchesWithActualDate->min('actual_date');
-            $maxDate = $matchesWithActualDate->max('actual_date');
 
             $checkDate = Carbon::parse(date('Y-m-d'));
 
-            if ($checkDate->between($minDate, $maxDate)) {
+            if ($checkDate->lte($minDate)) {
 
                 return $matchesWithActualDate;
             }
-        })->filter();
+        });
+
 
         if ($filtered->count() > 0) return $filtered->first();
 
