@@ -110,4 +110,36 @@ class NflController extends Controller
             $this->repository->getSchedules()
         );
     }
+
+    public function scoreboard()
+    {
+        $games = $this->repository->getCurrentScheduledGames();
+
+        $games->map(function($game) {
+
+            $game['awayteam'] = $this->parseNflTeam($game->awayteam);
+            $game['hometeam'] = $this->parseNflTeam($game->hometeam);
+
+            return $game;
+        });
+
+        return response()->json($games);
+
+    }
+
+    private function parseNflTeam($team)
+    {
+        if (empty($team))
+            return [];
+
+        $formatted = json_decode($team, true);
+
+        return [
+            ...$formatted,
+            'q1' => (int) $formatted['q1'] ?? 0,
+            'q2' => (int) $formatted['q2'] ?? 0,
+            'q3' => (int) $formatted['q3'] ?? 0,
+            'q4' => (int) $formatted['q4'] ?? 0,
+        ];
+    }
 }

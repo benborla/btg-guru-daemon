@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -69,5 +70,36 @@ class NflGame extends Model
             'season' => $season,
             'season_type_id' => $seasonType
         ])->get();
+    }
+
+    public static function getCurrentScheduledGames($season)
+    {
+        $data = static::where([
+            'season' => $season,
+        ])->get();
+
+        $filtered =  $data->groupBy('week')->map(function($matches) {
+            $matchesWithActualDate = $matches->map(function($match){
+
+                $date = Carbon::createFromFormat('d.m.Y', $match->formatted_date)->format('Y-m-d');
+                $match['actual_date'] = $date;
+
+                return $match;
+            });
+
+            $minDate = $matchesWithActualDate->min('actual_date');
+            $maxDate = $matchesWithActualDate->max('actual_date');
+
+            $checkDate = Carbon::parse(date('Y-m-d'));
+
+            if ($checkDate->between($minDate, $maxDate)) {
+
+                return $matchesWithActualDate;
+            }
+        })->filter();
+
+        if ($filtered->count() > 0) return $filtered->first();
+
+        return [];
     }
 }
