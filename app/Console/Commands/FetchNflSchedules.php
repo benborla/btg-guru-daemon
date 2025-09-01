@@ -280,6 +280,7 @@ class FetchNflSchedules extends Command
             ]
         );
 
+        $schedules = collect($schedules);
         /* dd(collect($schedules->first())['season']); */
         // get all scores
         collect($schedules->first()['tournament'])->map(function($season) use($schedules) {
