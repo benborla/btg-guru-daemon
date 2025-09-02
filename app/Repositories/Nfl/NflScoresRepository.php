@@ -11,6 +11,7 @@ use App\Repositories\Interfaces\NflScoresRepositoryInterface;
 use App\Services\Nfl\NflApiService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class NflScoresRepository
 {
@@ -512,7 +513,31 @@ class NflScoresRepository
 
     public function getCurrentScheduledGames()
     {
-        return NflGame::getCurrentScheduledGames(date('Y'));
+        $data = NFlGame::where('season',date('Y'))->get();
+
+        $filtered =  $data->groupBy('season_type_id')->map(function($matches) {
+            $matchesWithActualDate = $matches->map(function($match){
+
+                $date = Carbon::createFromFormat('d.m.Y', $match->formatted_date)->format('Y-m-d');
+                $match['actual_date'] = $date;
+
+                return $match;
+            });
+
+            $minDate = $matchesWithActualDate->min('actual_date');
+
+            $checkDate = Carbon::parse(date('Y-m-d'));
+
+            if ($checkDate->lte($minDate)) {
+
+                return $matchesWithActualDate;
+            }
+        })->filter();
+
+
+        if ($filtered->count() > 0) return $filtered->first();
+
+        return []; 
     }
 }
 

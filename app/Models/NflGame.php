@@ -102,4 +102,12 @@ class NflGame extends Model
 
         return [];
     }
+
+    public static function getGamesBySeason($season)
+    {
+        return static::where([
+            'season' => $season,
+        ])->get();
+
+    }
 }
