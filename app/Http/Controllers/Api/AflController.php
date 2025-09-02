@@ -202,6 +202,7 @@ class AflController extends Controller
             $response = Cache::remember($cacheKey, now()->addYear(), function () use ($data, $matchId, $aflService) {
                 return process_match_data($data, $matchId, $aflService);
             });
+
         } else {
             if ($data instanceof AflSchedule) {
                 return response()->json([
@@ -245,6 +246,8 @@ class AflController extends Controller
             $response = process_match_data($data, $matchId, $this->aflService);
 
         }
+
+	    $response['round'] =  $this->aflService->aflPlayOffMappingNames($response['round'])['full_name'] ?? $response['round'];
 
         return response()->json($response);
     }
