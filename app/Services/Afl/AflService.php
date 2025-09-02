@@ -668,6 +668,8 @@ class AflService
             $a['away_goals'] = $a['visitorteam']['@goals'];
             $a['away_behinds'] = $a['visitorteam']['@behinds'];
             $a['round_name'] = $roundName = $this->aflPlayOffMappingNames($a['round'])['name'] ?? $a['round'];
+            $carbonDate = \Carbon\Carbon::createFromFormat('d.m.Y H:i', $a['@date'] . " " . $a['time']);
+            $a['game_status'] = $carbonDate->format('M j, Y g:i A');
 
             return $a;
         });
