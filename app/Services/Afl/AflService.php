@@ -103,9 +103,9 @@ class AflService
     {
         // for testing purposes
         // \Carbon\Carbon::setTestNow(\Carbon\Carbon::create(2025, 7, 28, 23, 59, 0, 'Australia/Sydney'));
-        //  if (!has_match_today()) { 
-        //      return $this->analyzer->getNextMatchSchedule(); 
-        //  } 
+        //  if (!has_match_today()) {
+        //      return $this->analyzer->getNextMatchSchedule();
+        //  }
 
         return $this->analyzer->getTeamScores();
     }
@@ -607,7 +607,7 @@ class AflService
 
 
                 $filtered = $match->map(function($c) {
-                    
+
                     $gameDate = Carbon::parse($c['@date']);
                     $currentDate = Carbon::now();
 
@@ -643,7 +643,7 @@ class AflService
             $matches = $a['match']->map(function($b) use($a) {
                 $b['round'] = $a['@number'];
                 return $b;
-            }); 
+            });
 
             return $matches;
         })->flatMap(fn($a) => $a)->map(function($a){
@@ -665,6 +665,7 @@ class AflService
             $a['home_behinds'] = $a['localteam']['@behinds'];
             $a['away_goals'] = $a['visitorteam']['@goals'];
             $a['away_behinds'] = $a['visitorteam']['@behinds'];
+            $a['round_name'] = $roundName = $this->aflPlayOffMappingNames($a['round'])['name'] ?? $a['round'];
 
             return $a;
         });
