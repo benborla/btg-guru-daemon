@@ -513,7 +513,7 @@ class NflScoresRepository
 
     public function getCurrentScheduledGames()
     {
-        $data = NFlGame::getGamesBySeason(date('Y'));
+        $data = NFlGame::where('season',date('Y'))->get();
 
         $filtered =  $data->groupBy('season_type_id')->map(function($matches) {
             $matchesWithActualDate = $matches->map(function($match){
@@ -532,7 +532,7 @@ class NflScoresRepository
 
                 return $matchesWithActualDate;
             }
-        });
+        })->filter();
 
 
         if ($filtered->count() > 0) return $filtered->first();
