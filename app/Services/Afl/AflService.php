@@ -612,6 +612,7 @@ class AflService
                     $currentDate = Carbon::now();
 
                     if ($gameDate->greaterThan($currentDate)) {
+                        $c['actual_date'] = $gameDate->format('Y-m-d');
                         return $c;
                     }
 
@@ -624,6 +625,7 @@ class AflService
                 }
 
             })->filter();
+
 
             if ($rounds->count() == 0) {
                 return null;
@@ -646,7 +648,7 @@ class AflService
             });
 
             return $matches;
-        })->flatMap(fn($a) => $a)->map(function($a){
+        })->first()->map(function($a){
             $a['match_id'] = $a['@id'];
             $a['venue'] = $a['@venue'];
             $a['date'] = $a['@date'];
