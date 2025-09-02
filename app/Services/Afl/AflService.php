@@ -8,6 +8,7 @@ use App\Services\ApiDrivers\GoalServeApiDriver;
 use App\Services\Afl\Utils\Analyzer;
 use App\Models\AflApiResponse;
 use App\Models\AflSchedule;
+use Carbon\Carbon;
 
 class AflService
 {
@@ -102,9 +103,9 @@ class AflService
     {
         // for testing purposes
         // \Carbon\Carbon::setTestNow(\Carbon\Carbon::create(2025, 7, 28, 23, 59, 0, 'Australia/Sydney'));
-        /* if (!has_match_today()) { */
-        /*     return $this->analyzer->getNextMatchSchedule(); */
-        /* } */
+        //  if (!has_match_today()) { 
+        //      return $this->analyzer->getNextMatchSchedule(); 
+        //  } 
 
         return $this->analyzer->getTeamScores();
     }
@@ -578,5 +579,96 @@ class AflService
                 'match_status' => $a->match_status
             ];
         });
+    }
+
+    public function getScoreBoardFromSchedules()
+    {
+        // knkow what is the current season today
+        $schedules = AflApiResponse::where('uri', AflApiResponse::URI_SCHEDULE)->first();
+
+        if (!$schedules) {
+            return [];
+        }
+
+        $schedules = $schedules->response;
+        $tournament = $schedules['results']['tournament'];
+        $seasons = collect($tournament['round']);
+
+        // determine here the current season
+        $data = $seasons->map(function($a) {
+            $rounds = collect($a['week'])->map(function($b) {
+
+                $match = collect($b['match']);
+
+                if (isset($b['match']['@date'])) {
+                    $multiArray = [$b['match']];
+                    $match = collect($multiArray);
+                }
+
+
+                $filtered = $match->map(function($c) {
+                    
+                    $gameDate = Carbon::parse($c['@date']);
+                    $currentDate = Carbon::now();
+
+                    if ($gameDate->greaterThan($currentDate)) {
+                        return $c;
+                    }
+
+                    return null;
+                })->filter();
+
+                if ($filtered->count() > 0) {
+                    $b['match'] = $filtered;
+                    return $b;
+                }
+
+            })->filter();
+
+            if ($rounds->count() == 0) {
+                return null;
+            }
+
+            $a['week'] = $rounds;
+            return $a;
+
+        })->filter();
+
+        if ($data->count() == 0) {
+            return [];
+        }
+
+        // flat map
+        $data = $data->first()['week']->map(function($a) {
+            $matches = $a['match']->map(function($b) use($a) {
+                $b['round'] = $a['@number'];
+                return $b;
+            }); 
+
+            return $matches;
+        })->flatMap(fn($a) => $a)->map(function($a){
+            $a['match_id'] = $a['@id'];
+            $a['venue'] = $a['@venue'];
+            $a['date'] = $a['@date'];
+            $a['time'] = $a['@time'];
+            $a['status'] = $a['@status'];
+            $a['home_team'] = $a['localteam']['@name'];
+            $a['home_team_id'] = $a['localteam']['@id'];
+            $a['home_score'] = $a['localteam']['@score'];
+            $a['away_team'] = $a['visitorteam']['@name'];
+            $a['away_team_id'] = $a['visitorteam']['@id'];
+            $a['away_score'] = $a['visitorteam']['@score'];
+            $a['total_score'] = $a['localteam']['@score'] + $a['visitorteam']['@score'];
+            $a['margin'] = $a['localteam']['@score'] - $a['visitorteam']['@score'];
+            $a['winner'] = $a['localteam']['@name'];
+            $a['home_goals'] = $a['localteam']['@goals'];
+            $a['home_behinds'] = $a['localteam']['@behinds'];
+            $a['away_goals'] = $a['visitorteam']['@goals'];
+            $a['away_behinds'] = $a['visitorteam']['@behinds'];
+
+            return $a;
+        });
+
+        return $data;
     }
 }
