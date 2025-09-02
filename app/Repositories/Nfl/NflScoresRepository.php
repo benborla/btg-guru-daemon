@@ -509,5 +509,10 @@ class NflScoresRepository
         /* } */
 
     }
+
+    public function getCurrentScheduledGames()
+    {
+        return NflGame::getCurrentScheduledGames(date('Y'));
+    }
 }
 
