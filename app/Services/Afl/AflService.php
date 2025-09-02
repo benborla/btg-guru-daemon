@@ -172,7 +172,52 @@ class AflService
 
     public function getTeamsInfo()
     {
-        return $this->analyzer->getAllTeamNamesInfo()->sortBy('name');
+        $tournament = $this->getAflSchedules();
+
+        $teams = collect($tournament['round'])->map(function($a) {
+            $week = collect($a['week'])->map(function($b) {
+
+                if (!isset($b['match']['@date'])) {
+                    $matches = collect($b['match'])->flatMap(function($c) {
+                        return [
+                            $c['localteam']['@name'] => [
+                                'name' => $c['localteam']['@name'],
+                                'id' => $c['localteam']['@id'],
+                                'image_name' => str_replace(' ', '_', $c['localteam']['@name'])
+                            ],
+                            $c['visitorteam']['@name'] => [
+                                'name' => $c['visitorteam']['@name'],
+                                'id' => $c['visitorteam']['@id'],
+                                'image_name' => str_replace(' ', '_', $c['visitorteam']['@name'])
+                            ],
+                        ];
+                    });
+
+                    return $matches->unique()->values();
+                }
+            });
+
+            return $week;
+        });// //  //
+
+        $teams = $teams->flatMap(fn($a) => $a)->flatMap(fn($a) => $a)->unique()->values()->sortBy('name');
+
+        $teams = $teams->filter(function($a) {
+            return !in_array($a['name'], [
+                'Winner EF1',
+                'Winner EF2',
+                'Winner QF1',
+                'Winner QF2',
+                'Winner SF1',
+                'Winner SF2',
+                'Winner GF1',
+                'Winner GF2',
+                'Loser QF2',
+                'Loser QF1',
+            ]);
+        });
+
+        return $teams;
     }
 
     public function aflPlayOffMappingNames($round)
@@ -579,6 +624,18 @@ class AflService
                 'match_status' => $a->match_status
             ];
         });
+    }
+
+    public function getAflSchedules()
+    {
+        $schedules = AflApiResponse::where('uri', AflApiResponse::URI_SCHEDULE)->first();
+
+        if (!$schedules) {
+            return [];
+        }
+
+        $schedules = $schedules->response;
+        return $schedules['results']['tournament'];
     }
 
     public function getScoreBoardFromSchedules()
