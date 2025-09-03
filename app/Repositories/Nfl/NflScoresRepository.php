@@ -170,7 +170,8 @@ class NflScoresRepository
             return collect($item['week'])->flatMap(function($a){
 
                 return collect($a['matches'])->flatMap(function($b){
-                    return collect($b['match'])->flatMap(function($c){
+                    if (isset($b['match'])) {
+                        return collect($b['match'])->flatMap(function($c){
 
                         $isAfcHome = $this->isAfc($c['hometeam']['id']);
                         $isNfcHome = $this->isNfc($c['hometeam']['id']);
@@ -193,6 +194,7 @@ class NflScoresRepository
                             ],
                         ];
                     });
+                }
                 });
 
             });
@@ -524,20 +526,262 @@ class NflScoresRepository
                 return $match;
             });
 
+
             $minDate = $matchesWithActualDate->min('actual_date');
 
             $checkDate = Carbon::parse(date('Y-m-d'));
 
             if ($checkDate->lte($minDate)) {
-
                 return $matchesWithActualDate;
             }
         })->filter();
 
-
         if ($filtered->count() > 0) return $filtered->first();
 
         return []; 
+    }
+
+    private function formatNflScores($data)
+    {
+        return $data->map(function($match) {
+            $match['awayteam'] = $this->parseNflTeam($match->awayteam);
+            $match['hometeam'] = $this->parseNflTeam($match->hometeam);
+            return $match;
+        });
+    }
+
+    public function NflTeamAbbrieviation($teamId)
+    {
+        $teams = '[
+            {
+              "ID": 1696,
+              "Name": "Arizona Cardinals",
+              "Abbreviation": "ARI",
+              "Conference": "NFC",
+              "Division": "West"
+            },
+            {
+              "ID": 1690,
+              "Name": "Atlanta Falcons",
+              "Abbreviation": "ATL",
+              "Conference": "NFC",
+              "Division": "South"
+            },
+            {
+              "ID": 1683,
+              "Name": "Baltimore Ravens",
+              "Abbreviation": "BAL",
+              "Conference": "AFC",
+              "Division": "North"
+            },
+            {
+              "ID": 1689,
+              "Name": "Buffalo Bills",
+              "Abbreviation": "BUF",
+              "Conference": "AFC",
+              "Division": "East"
+            },
+            {
+              "ID": 1684,
+              "Name": "Carolina Panthers",
+              "Abbreviation": "CAR",
+              "Conference": "NFC",
+              "Division": "South"
+            },
+            {
+              "ID": 1703,
+              "Name": "Chicago Bears",
+              "Abbreviation": "CHI",
+              "Conference": "NFC",
+              "Division": "North"
+            },
+            {
+              "ID": 1679,
+              "Name": "Cincinnati Bengals",
+              "Abbreviation": "CIN",
+              "Conference": "AFC",
+              "Division": "North"
+            },
+            {
+              "ID": 1699,
+              "Name": "Cleveland Browns",
+              "Abbreviation": "CLE",
+              "Conference": "AFC",
+              "Division": "North"
+            },
+            {
+              "ID": 1680,
+              "Name": "Dallas Cowboys",
+              "Abbreviation": "DAL",
+              "Conference": "NFC",
+              "Division": "East"
+            },
+            {
+              "ID": 1708,
+              "Name": "Denver Broncos",
+              "Abbreviation": "DEN",
+              "Conference": "AFC",
+              "Division": "West"
+            },
+            {
+              "ID": 1695,
+              "Name": "Detroit Lions",
+              "Abbreviation": "DET",
+              "Conference": "NFC",
+              "Division": "North"
+            },
+            {
+              "ID": 1698,
+              "Name": "Green Bay Packers",
+              "Abbreviation": "GB",
+              "Conference": "NFC",
+              "Division": "North"
+            },
+            {
+              "ID": 1697,
+              "Name": "Houston Texans",
+              "Abbreviation": "HOU",
+              "Conference": "AFC",
+              "Division": "South"
+            },
+            {
+              "ID": 1706,
+              "Name": "Indianapolis Colts",
+              "Abbreviation": "IND",
+              "Conference": "AFC",
+              "Division": "South"
+            },
+            {
+              "ID": 1687,
+              "Name": "Jacksonville Jaguars",
+              "Abbreviation": "JAX",
+              "Conference": "AFC",
+              "Division": "South"
+            },
+            {
+              "ID": 1691,
+              "Name": "Kansas City Chiefs",
+              "Abbreviation": "KC",
+              "Conference": "AFC",
+              "Division": "West"
+            },
+            {
+              "ID": 1692,
+              "Name": "Miami Dolphins",
+              "Abbreviation": "MIA",
+              "Conference": "AFC",
+              "Division": "East"
+            },
+            {
+              "ID": 1701,
+              "Name": "Minnesota Vikings",
+              "Abbreviation": "MIN",
+              "Conference": "NFC",
+              "Division": "North"
+            },
+            {
+              "ID": 1681,
+              "Name": "New England Patriots",
+              "Abbreviation": "NE",
+              "Conference": "AFC",
+              "Division": "East"
+            },
+            {
+              "ID": 1682,
+              "Name": "New Orleans Saints",
+              "Abbreviation": "NO",
+              "Conference": "NFC",
+              "Division": "South"
+            },
+            {
+              "ID": 1710,
+              "Name": "New York Giants",
+              "Abbreviation": "NYG",
+              "Conference": "NFC",
+              "Division": "East"
+            },
+            {
+              "ID": 1709,
+              "Name": "New York Jets",
+              "Abbreviation": "NYJ",
+              "Conference": "AFC",
+              "Division": "East"
+            },
+            {
+              "ID": 5566,
+              "Name": "Las Vegas Raiders",
+              "Abbreviation": "LV",
+              "Conference": "AFC",
+              "Division": "West"
+            },
+            {
+              "ID": 1686,
+              "Name": "Philadelphia Eagles",
+              "Abbreviation": "PHI",
+              "Conference": "NFC",
+              "Division": "East"
+            },
+            {
+              "ID": 1694,
+              "Name": "Pittsburgh Steelers",
+              "Abbreviation": "PIT",
+              "Conference": "AFC",
+              "Division": "North"
+            },
+            {
+              "ID": 1702,
+              "Name": "Los Angeles Chargers",
+              "Abbreviation": "LAC",
+              "Conference": "AFC",
+              "Division": "West"
+            },
+            {
+              "ID": 1707,
+              "Name": "San Francisco 49ers",
+              "Abbreviation": "SF",
+              "Conference": "NFC",
+              "Division": "West"
+            },
+            {
+              "ID": 1704,
+              "Name": "Seattle Seahawks",
+              "Abbreviation": "SEA",
+              "Conference": "NFC",
+              "Division": "West"
+            },
+            {
+              "ID": 5117,
+              "Name": "Los Angeles Rams",
+              "Abbreviation": "LAR",
+              "Conference": "NFC",
+              "Division": "West"
+            },
+            {
+              "ID": 1693,
+              "Name": "Tampa Bay Buccaneers",
+              "Abbreviation": "TB",
+              "Conference": "NFC",
+              "Division": "South"
+            },
+            {
+              "ID": 1705,
+              "Name": "Tennessee Titans",
+              "Abbreviation": "TEN",
+              "Conference": "AFC",
+              "Division": "South"
+            },
+            {
+              "ID": 5753,
+              "Name": "Washington Commanders",
+              "Abbreviation": "WAS",
+              "Conference": "NFC",
+              "Division": "East"
+            }
+        ]'; 
+
+        $teams = collect(json_decode($teams, true));
+        
+        return $teams->where('ID', $teamId)->first();
     }
 }
 

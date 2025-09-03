@@ -50,7 +50,6 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('nfl')->group(function () {
-        /* Route::get('/has-match-today', [AflController::class, 'hasMatchToday']); */
         Route::get('/scoreboard', [NflController::class, 'scoreboard']);
         /* Route::get('/standing', [AflController::class, 'standing']); */
         /* Route::get('/schedules', [AflController::class, 'schedules']); */
