@@ -12,6 +12,7 @@ use App\Services\Nfl\NflApiService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Repositories\Nfl\NflApiRepository;
 
 class NflScoresRepository
 {
@@ -20,7 +21,8 @@ class NflScoresRepository
 
     public function __construct(
         private NflApiService $apiService,
-        private NflGame $model
+        private NflGame $model,
+        public NflApiRepository $apiRepository      
     ) {}
 
 
@@ -782,6 +784,62 @@ class NflScoresRepository
         $teams = collect(json_decode($teams, true));
         
         return $teams->where('ID', $teamId)->first();
+    }
+    
+    public function getScoreBoardDataFromDb()
+    {
+        $games=  $this->apiRepository->getCurrentScheduledGames();
+
+        return $games->map(function($game) {
+
+            $game['awayteam'] = $this->parseNflTeam($game->awayteam);
+            $game['hometeam'] = $this->parseNflTeam($game->hometeam);
+            $game['game_date'] = Carbon::parse($game['datetime_utc'])->format('M j g:ia');
+            $game['current_game'] = false;
+
+            return $game;
+        });
+    }
+
+    public function getScoreBoardDataFromApi()
+    {
+        $games = $this->apiRepository->getScoreBoardDataFromApi();
+
+        return $games->map(function($game) {
+
+            $game['awayteam'] = $this->parseNflTeam($game['awayteam']);
+            $game['hometeam'] = $this->parseNflTeam($game['hometeam']);
+            $game['game_date'] = Carbon::parse($game['datetime_utc'])->format('M j g:ia');
+            $game['current_game'] = Carbon::parse($game['datetime_utc'])->isToday();
+            // $game['current_game'] = $game['contestID'] == '204610';
+
+            return $game;
+        });
+    }
+
+    public function hasMatchToday()
+    {
+        return $this->apiRepository->hasMatchToday();
+    }
+
+    private function parseNflTeam($team)
+    {
+        if (empty($team))
+            return [];
+
+        $formatted = !is_array($team) ? json_decode($team, true) : $team;
+
+        return [
+            ...$formatted,
+            'q1' => (int) $formatted['q1'] ?? 0,
+            'q2' => (int) $formatted['q2'] ?? 0,
+            'q3' => (int) $formatted['q3'] ?? 0,
+            'q4' => (int) $formatted['q4'] ?? 0,
+            'long' => $formatted['name'] ?? '',
+            'score' => (int) $formatted['totalscore'] ?? 0,
+            'short' => $this->NflTeamAbbrieviation($formatted['id'])['Abbreviation'] ?? '',
+            'image_name' => str_replace(' ', '_', $formatted['name']),
+        ];
     }
 }
 
