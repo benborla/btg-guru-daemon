@@ -261,14 +261,22 @@ class NflScoresRepository
         )->first();
 
 
-        if(empty($schedules)) return [];
+        if(empty($schedules)) {
+
+            $yesterday = date('Y-m-d', strtotime('-1 day'));
+            $schedules = NflApiResponse::where(
+                [
+                    'date_fetched' => $yesterday,
+                    'season' => $season ?? date('Y')
+                ]
+            )->first();
+        }
 
         return collect(json_decode($schedules->response, true)['shedules']['tournament']);
     }
 
     public function getSeasonTypes()
     {
-
         $tournament = $this->getTournament();
 
         if (empty($tournament)) return [];
