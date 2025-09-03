@@ -61,6 +61,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/team-standings/season/{season}/team-id/{teamId}', [NflController::class, 'teamStandings']);
         Route::get('/scores', [NflController::class, 'scores']);
         Route::get('/schedules', [NflController::class, 'schedules']);
+        Route::get('/has-match-today', [NflController::class, 'hasMatchToday']);
     });
 
     // Auth routes

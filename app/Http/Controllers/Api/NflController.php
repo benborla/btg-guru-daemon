@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Repositories\Nfl\NflScoresRepository;
+use App\Repositories\Nfl\NflApiRepository;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 
@@ -11,7 +12,8 @@ class NflController extends Controller
 {
 
     public function __construct(
-        private NflScoresRepository $repository
+        private NflScoresRepository $repository,
+        private NflApiRepository $apiRepository
     ) {}
 
     public function liveScores()
@@ -115,38 +117,23 @@ class NflController extends Controller
 
     public function scoreboard()
     {
-        $games = $this->repository->getCurrentScheduledGames();
+        $games = [];
 
-        $games->map(function($game) {
-
-            $game['awayteam'] = $this->parseNflTeam($game->awayteam);
-            $game['hometeam'] = $this->parseNflTeam($game->hometeam);
-            $game['game_date'] = Carbon::parse($game['datetime_utc'])->format('M j g:ia');
-
-            return $game;
-        });
+        if ($this->repository->hasMatchToday()) {
+            $games = $this->repository->getScoreBoardDataFromApi();
+        } else {
+            $games = $this->repository->getScoreBoardDataFromDb();
+        }
 
         return response()->json($games);
 
     }
 
-    private function parseNflTeam($team)
+    public function hasMatchToday()
     {
-        if (empty($team))
-            return [];
-
-        $formatted = json_decode($team, true);
-
-        return [
-            ...$formatted,
-            'q1' => (int) $formatted['q1'] ?? 0,
-            'q2' => (int) $formatted['q2'] ?? 0,
-            'q3' => (int) $formatted['q3'] ?? 0,
-            'q4' => (int) $formatted['q4'] ?? 0,
-            'long' => $formatted['name'] ?? '',
-            'score' => (int) $formatted['totalscore'] ?? 0,
-            'short' => $this->repository->NflTeamAbbrieviation($formatted['id'])['Abbreviation'] ?? '',
-            'image_name' => str_replace(' ', '_', $formatted['name']),
-        ];
+        return response()->json(
+            ['status' => $this->repository->hasMatchToday()]
+        );
     }
+
 }
