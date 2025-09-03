@@ -35,8 +35,11 @@ class AflController extends Controller
 
     public function scoreboard()
     {
+        if (has_match_today()) {
+            return $this->aflService->getScoreboard();
+        }
+
         return $this->aflService->getScoreBoardFromSchedules();
-        // return $this->aflService->getScoreboard();
     }
 
     public function standing()
