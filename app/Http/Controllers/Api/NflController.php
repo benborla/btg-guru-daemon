@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Repositories\Nfl\NflScoresRepository;
 use Illuminate\Http\JsonResponse;
+use Carbon\Carbon;
 
 class NflController extends Controller
 {
@@ -106,8 +107,9 @@ class NflController extends Controller
 
     public function schedules()
     {
+        $week = request()->input('week');
         return response()->json(
-            $this->repository->getSchedules()
+            $this->repository->getSchedules($week)
         );
     }
 
@@ -119,6 +121,7 @@ class NflController extends Controller
 
             $game['awayteam'] = $this->parseNflTeam($game->awayteam);
             $game['hometeam'] = $this->parseNflTeam($game->hometeam);
+            $game['game_date'] = Carbon::parse($game['datetime_utc'])->format('M j g:ia');
 
             return $game;
         });
@@ -140,6 +143,10 @@ class NflController extends Controller
             'q2' => (int) $formatted['q2'] ?? 0,
             'q3' => (int) $formatted['q3'] ?? 0,
             'q4' => (int) $formatted['q4'] ?? 0,
+            'long' => $formatted['name'] ?? '',
+            'score' => (int) $formatted['totalscore'] ?? 0,
+            'short' => $this->repository->NflTeamAbbrieviation($formatted['id'])['Abbreviation'] ?? '',
+            'image_name' => str_replace(' ', '_', $formatted['name']),
         ];
     }
 }
