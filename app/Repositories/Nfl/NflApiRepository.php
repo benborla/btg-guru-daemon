@@ -81,7 +81,7 @@ class NflApiRepository
         $dataToday = $this->getCurrentScheduledGames();
 
         $matchesStatus = $dataToday->map(function($match){
-            $gameDate = Carbon::parse($match->date);
+            $gameDate = Carbon::parse($match->datetime_utc, "UTC")->setTimeZone('Australia/Sydney');
             $hasTodayMatch = $gameDate->isToday();
 
             return ['todayMatch' => $hasTodayMatch];
@@ -92,6 +92,11 @@ class NflApiRepository
         });
 
         return $hasMatchToday;
+    }
+
+    public function getCurrentWeek()
+    {
+        return  $this->getCurrentScheduledGames()->first()->week;
     }
     
 }

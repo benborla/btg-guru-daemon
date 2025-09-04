@@ -228,7 +228,7 @@ class NflScoresRepository
         return (new NflStandingsDto($data))->getTeamStandings($season, $teamId);
     }
 
-    public function getScores($date)
+    public function getScores($season, $week)
     {
         $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
 
@@ -242,7 +242,7 @@ class NflScoresRepository
 
     }
 
-    public function getSchedules()
+    public function getSchedules($season, $seasonTypeId, $week)
     {
         $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
 
@@ -252,7 +252,46 @@ class NflScoresRepository
             $data['data'] = json_decode($schedules->response,true)['shedules']['tournament'];
         }
 
-        return $data;
+        $currentWeekSchedule = $this->apiRepository->getCurrentScheduledGames()->first();
+        $currentWeek = $currentWeekSchedule->week;
+        $weekInfo = $this->getWeeksInfo($currentWeekSchedule->season_type_id);
+        $weekInfo = $weekInfo->where('week', $currentWeek)->first();
+
+        $allWeeksInfo = $this->getSeasonTypes()->flatMap(function($a) {
+            $allWeeks = $this->getWeeksInfo($a['id']);
+            $allWeeks = $allWeeks->map(function($b) use($a) {
+                $b['season_type_id'] = $a['id'];
+                $b['season_type_name'] = $a['name'];
+                $isPreSeason = $a['id'] == 1;
+                $isPostSesason = $a['id'] == 3;
+
+                $bgColor = $isPreSeason ? '#ba893f' : ($isPostSesason ? '#0d6efd' : '#cfcfcf');
+                $color = $isPreSeason ? '#444' : ($isPostSesason ? '#fff' : '#000');
+
+                $b['week_alias'] = $isPreSeason ? 'P' . ((int) $b['week'] - 1 ) : ($isPostSesason ? $b['week_initials'] : $b['week']);
+                $b['bg_color'] = $bgColor;
+                $b['color'] = $color;
+
+                return $b;
+            });
+
+            return $allWeeks;
+        });
+
+        $weekGames = NflGame::where([
+            'season' => $season,
+            'season_type_id' => $seasonTypeId,
+            'week' => $week
+        ])->get();
+
+        $withoutHOFW = $allWeeksInfo->filter(fn($a) => $a['week_initials'] != 'HOFW');
+
+        return [
+            'current_week' => $weekInfo,
+            'all_weeks' => $withoutHOFW ,
+            'hasMatchToday' => $this->apiRepository->hasMatchToday(),
+            'data' => $weekGames
+        ];
     }
 
     public function getTournament($season = null)
@@ -802,7 +841,7 @@ class NflScoresRepository
 
             $game['awayteam'] = $this->parseNflTeam($game->awayteam);
             $game['hometeam'] = $this->parseNflTeam($game->hometeam);
-            $game['game_date'] = Carbon::parse($game['datetime_utc'])->format('M j g:ia');
+            $game['game_date'] = Carbon::parse($game['datetime_utc'], "UTC")->setTimeZone('Australia/Sydney')->format('M j g:ia');
             $game['current_game'] = false;
 
             return $game;
@@ -817,8 +856,8 @@ class NflScoresRepository
 
             $game['awayteam'] = $this->parseNflTeam($game['awayteam']);
             $game['hometeam'] = $this->parseNflTeam($game['hometeam']);
-            $game['game_date'] = Carbon::createFromFormat('d.m.Y H:i A', $game['date'] . ' ' . $game['time'])->format('M j g:ia');
-            $game['current_game'] = Carbon::parse($game['date'])->isToday();
+            $game['game_date'] = Carbon::parse($game['datetime_utc'], "UTC")->setTimeZone('Australia/Sydney')->format('M j g:ia');
+            $game['current_game'] = Carbon::parse($game['datetime_utc'], "UTC")->setTimeZone('Australia/Sydney')->isToday();
             // $game['current_game'] = $game['contestID'] == '204610';
 
             return $game;
@@ -848,6 +887,16 @@ class NflScoresRepository
             'short' => $this->NflTeamAbbrieviation($formatted['id'])['Abbreviation'] ?? '',
             'image_name' => str_replace(' ', '_', $formatted['name']),
         ];
+    }
+
+    public function getCurrentWeek()
+    {
+        $currentWeekSchedule = $this->apiRepository->getCurrentScheduledGames()->first();
+        $weekInfo = $this->getWeeksInfo($currentWeekSchedule->season_type_id);
+        $weekInfo = $weekInfo->where('week', $currentWeekSchedule->week)->first();
+        $weekInfo['season_type_id'] = $currentWeekSchedule->season_type_id;
+
+        return $weekInfo;
     }
 }
 

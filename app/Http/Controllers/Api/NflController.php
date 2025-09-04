@@ -101,6 +101,7 @@ class NflController extends Controller
     public function scores()
     {
         $date = request()->input('date');
+        $week = request()->input('date');
 
         return response()->json(
             $this->repository->getScores($date)
@@ -110,8 +111,18 @@ class NflController extends Controller
     public function schedules()
     {
         $week = request()->input('week');
+        $season = request()->input('season');
+        $seasonTypeId = request()->input('seasonTypeId');
+
         return response()->json(
-            $this->repository->getSchedules($week)
+            $this->repository->getSchedules($season, $seasonTypeId, $week)
+        );
+    }
+
+    public function currentWeek()
+    {
+        return response()->json(
+            $this->repository->getCurrentWeek()
         );
     }
 
