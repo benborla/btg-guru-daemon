@@ -93,6 +93,11 @@ class NflApiRepository
 
         return $hasMatchToday;
     }
+
+    public function getCurrentWeek()
+    {
+        return  $this->getCurrentScheduledGames()->first()->week;
+    }
     
 }
 

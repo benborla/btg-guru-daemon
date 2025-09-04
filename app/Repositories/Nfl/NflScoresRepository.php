@@ -228,7 +228,7 @@ class NflScoresRepository
         return (new NflStandingsDto($data))->getTeamStandings($season, $teamId);
     }
 
-    public function getScores($date)
+    public function getScores($season, $week)
     {
         $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
 
@@ -242,7 +242,7 @@ class NflScoresRepository
 
     }
 
-    public function getSchedules()
+    public function getSchedules($season, $seasonTypeId, $week)
     {
         $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
 
@@ -252,7 +252,35 @@ class NflScoresRepository
             $data['data'] = json_decode($schedules->response,true)['shedules']['tournament'];
         }
 
-        return $data;
+        $currentWeekSchedule = $this->apiRepository->getCurrentScheduledGames()->first();
+        $currentWeek = $currentWeekSchedule->week;
+        $weekInfo = $this->getWeeksInfo($currentWeekSchedule->season_type_id);
+        $weekInfo = $weekInfo->where('week', $currentWeek)->first();
+
+        $alWeeksInfo = $this->getSeasonTypes()->flatMap(function($a) {
+            $allWeeks = $this->getWeeksInfo($a['id']);
+            $allWeeks = $allWeeks->map(function($b) use($a) {
+                $b['season_type_id'] = $a['id'];
+                $b['season_type_name'] = $a['name'];
+                return $b;
+            });
+
+            return $allWeeks;
+        });
+
+        $weekGames = NflGame::where([
+            'season' => $season,
+            'season_type_id' => $seasonTypeId,
+            'week' => $week
+        ])->get();
+
+
+        return [
+            'current_week' => $weekInfo,
+            'all_weeks' => $alWeeksInfo,
+            'hasMatchToday' => $this->apiRepository->hasMatchToday(),
+            'data' => $weekGames
+        ];
     }
 
     public function getTournament($season = null)
@@ -848,6 +876,11 @@ class NflScoresRepository
             'short' => $this->NflTeamAbbrieviation($formatted['id'])['Abbreviation'] ?? '',
             'image_name' => str_replace(' ', '_', $formatted['name']),
         ];
+    }
+
+    public function getCurrentWeek()
+    {
+        return $this->apiRepository->getCurrentWeek();
     }
 }
 
