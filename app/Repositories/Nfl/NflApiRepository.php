@@ -81,7 +81,7 @@ class NflApiRepository
         $dataToday = $this->getCurrentScheduledGames();
 
         $matchesStatus = $dataToday->map(function($match){
-            $gameDate = Carbon::parse($match->datetime_utc);
+            $gameDate = Carbon::parse($match->date);
             $hasTodayMatch = $gameDate->isToday();
 
             return ['todayMatch' => $hasTodayMatch];
