@@ -380,8 +380,8 @@ class NflScoresRepository
             // find the team
             $match = $match->map(function($item, $i) use($teamId, $match, $teamAVG, $seasonType){
 
-                $homeTeam = json_decode($item->hometeam, true);
-                $awayTeam = json_decode($item->awayteam,true);
+                $homeTeam = $item->hometeam;
+                $awayTeam = $item->awayteam;
                 $item['home_image_name'] = str_replace(' ', '_', $homeTeam['name']);
                 $item['away_image_name'] = str_replace(' ', '_', $awayTeam['name']);
                 $item['home_team_id'] = $homeTeam['id'];
@@ -462,20 +462,6 @@ class NflScoresRepository
             return [
                 $week => [
                     ...$match->toArray(),
-                    'fumbles' => json_decode($match->fumbles, true),
-                    'punt_returns' => json_decode($match->punt_returns, true),
-                    'punting' => json_decode($match->punting, true),
-                    'awayteam' => json_decode($match->awayteam, true),
-                    'hometeam' => json_decode($match->hometeam, true),
-                    'defensive' => json_decode($match->defensive, true),
-                    'events' => json_decode($match->events, true),
-                    'team_stats' => json_decode($match->team_stats, true),
-                    'interceptions' => json_decode($match->interceptions, true),
-                    'kick_returns' => json_decode($match->kick_returns, true),
-                    'kicking' => json_decode($match->kicking, true),
-                    'passing' => json_decode($match->passing, true),
-                    'receiving' => json_decode($match->receiving, true),
-                    'rushing' => json_decode($match->rushing, true),
                 ]
             ];
         });
@@ -527,8 +513,8 @@ class NflScoresRepository
         }
 
         return $filtered->map(function($a) use($teamId){
-            $homeTeam = json_decode($a->hometeam, true);
-            $awayTeam = json_decode($a->awayteam,true);
+            $homeTeam = $a->hometeam;
+            $awayTeam = $a->awayteam;
 
             $a['home_for'] = $homeTeam['totalscore'];
             $a['away_for'] = $awayTeam['totalscore'];
