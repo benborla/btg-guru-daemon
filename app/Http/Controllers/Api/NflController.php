@@ -121,7 +121,9 @@ class NflController extends Controller
 
     public function currentWeek()
     {
-
+        return response()->json(
+            $this->repository->getCurrentWeek()
+        );
     }
 
     public function scoreboard()

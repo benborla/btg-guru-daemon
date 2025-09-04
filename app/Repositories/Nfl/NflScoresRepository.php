@@ -257,11 +257,21 @@ class NflScoresRepository
         $weekInfo = $this->getWeeksInfo($currentWeekSchedule->season_type_id);
         $weekInfo = $weekInfo->where('week', $currentWeek)->first();
 
-        $alWeeksInfo = $this->getSeasonTypes()->flatMap(function($a) {
+        $allWeeksInfo = $this->getSeasonTypes()->flatMap(function($a) {
             $allWeeks = $this->getWeeksInfo($a['id']);
             $allWeeks = $allWeeks->map(function($b) use($a) {
                 $b['season_type_id'] = $a['id'];
                 $b['season_type_name'] = $a['name'];
+                $isPreSeason = $a['id'] == 1;
+                $isPostSesason = $a['id'] == 3;
+
+                $bgColor = $isPreSeason ? '#ba893f' : ($isPostSesason ? '#0d6efd' : '#cfcfcf');
+                $color = $isPreSeason ? '#444' : ($isPostSesason ? '#fff' : '#000');
+
+                $b['week_alias'] = $isPreSeason ? 'P' . ((int) $b['week'] - 1 ) : ($isPostSesason ? $b['week_initials'] : $b['week']);
+                $b['bg_color'] = $bgColor;
+                $b['color'] = $color;
+
                 return $b;
             });
 
@@ -274,10 +284,11 @@ class NflScoresRepository
             'week' => $week
         ])->get();
 
+        $withoutHOFW = $allWeeksInfo->filter(fn($a) => $a['week_initials'] != 'HOFW');
 
         return [
             'current_week' => $weekInfo,
-            'all_weeks' => $alWeeksInfo,
+            'all_weeks' => $withoutHOFW ,
             'hasMatchToday' => $this->apiRepository->hasMatchToday(),
             'data' => $weekGames
         ];
@@ -830,7 +841,7 @@ class NflScoresRepository
 
             $game['awayteam'] = $this->parseNflTeam($game->awayteam);
             $game['hometeam'] = $this->parseNflTeam($game->hometeam);
-            $game['game_date'] = Carbon::parse($game['datetime_utc'])->format('M j g:ia');
+            $game['game_date'] = Carbon::parse($game['datetime_utc'], "UTC")->setTimeZone('Australia/Sydney')->format('M j g:ia');
             $game['current_game'] = false;
 
             return $game;
@@ -845,8 +856,8 @@ class NflScoresRepository
 
             $game['awayteam'] = $this->parseNflTeam($game['awayteam']);
             $game['hometeam'] = $this->parseNflTeam($game['hometeam']);
-            $game['game_date'] = Carbon::createFromFormat('d.m.Y H:i A', $game['date'] . ' ' . $game['time'])->format('M j g:ia');
-            $game['current_game'] = Carbon::parse($game['date'])->isToday();
+            $game['game_date'] = Carbon::parse($game['datetime_utc'], "UTC")->setTimeZone('Australia/Sydney')->format('M j g:ia');
+            $game['current_game'] = Carbon::parse($game['datetime_utc'], "UTC")->setTimeZone('Australia/Sydney')->isToday();
             // $game['current_game'] = $game['contestID'] == '204610';
 
             return $game;
@@ -880,7 +891,12 @@ class NflScoresRepository
 
     public function getCurrentWeek()
     {
-        return $this->apiRepository->getCurrentWeek();
+        $currentWeekSchedule = $this->apiRepository->getCurrentScheduledGames()->first();
+        $weekInfo = $this->getWeeksInfo($currentWeekSchedule->season_type_id);
+        $weekInfo = $weekInfo->where('week', $currentWeekSchedule->week)->first();
+        $weekInfo['season_type_id'] = $currentWeekSchedule->season_type_id;
+
+        return $weekInfo;
     }
 }
 
