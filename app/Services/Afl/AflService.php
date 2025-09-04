@@ -107,7 +107,16 @@ class AflService
         //      return $this->analyzer->getNextMatchSchedule();
         //  }
 
-        return $this->analyzer->getTeamScores();
+        $data =  $this->analyzer->getTeamScores();
+        $data = $data->map(function($a){
+            $a['round_name'] = $roundName = $this->aflPlayOffMappingNames($a['round'])['name'] ?? $a['round'];
+            $carbonDate = \Carbon\Carbon::createFromFormat('d.m.Y H:i', $a['date'] . " " . $a['time']);
+            $a['game_status'] = $carbonDate->format('M j, Y g:i A');
+
+            return $a;
+        });
+
+        return $data;
     }
 
     public function getHeadToHead()
