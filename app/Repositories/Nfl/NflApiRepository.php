@@ -14,6 +14,8 @@ class NflApiRepository
 {
     const API_NFL_SCORES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-scores?json=1";
     const CACHE_SECONDS = 10;
+
+    public bool $needToStore = false;
     
     public function getDbApiResponse()
     {
@@ -31,17 +33,19 @@ class NflApiRepository
         $cacheKey = "nfl_api_scores_" . date('Y-m-d');
 
         if (Cache::has($cacheKey)) {
+            $this->needToStore = false;
             return Cache::get($cacheKey);
         }
 
         $response = Http::get(self::API_NFL_SCORES_URL);
 
         Cache::put($cacheKey, $response->json(), now()->addSeconds(self::CACHE_SECONDS));
+        $this->needToStore = true;
 
         return $response->json();
     }
 
-    public function getScoreBoardDataFromApi()
+     public function getScoreBoardDataFromApi()
     {
         $response = $this->fetchApiScores();
 

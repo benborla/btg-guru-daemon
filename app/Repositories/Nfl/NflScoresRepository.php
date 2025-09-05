@@ -852,7 +852,9 @@ class NflScoresRepository
             $game['game_status'] = $game['status'] == 'Not Started' ? $gameDate : $game['status'];
             // $game['current_game'] = $game['contestID'] == '204610';
 
-            $this->storeGame($game);
+            if ($this->apiRepository->needToStore) {
+                $this->storeGame($game);
+            }
 
             return $game;
         });
