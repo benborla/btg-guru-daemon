@@ -89,11 +89,14 @@ class NflApiRepository
             $gameDate = Carbon::parse($match->datetime_utc, "UTC")->setTimeZone('Australia/Sydney');
             $hasTodayMatch = $gameDate->isToday();
 
-            return ['todayMatch' => $hasTodayMatch];
+            return [
+                'todayMatch' => $hasTodayMatch,
+                'gameIsOver' => $match['status'] == 'Final'
+            ];
         })->filter();
 
         $hasMatchToday = $matchesStatus->contains(function ($item) {
-            return $item['todayMatch'] === true;
+            return $item['todayMatch'] == true && $item['gameIsOver'] == false;
         });
         
 

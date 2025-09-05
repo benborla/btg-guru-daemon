@@ -286,12 +286,14 @@ class NflScoresRepository
 
         $withoutHOFW = $allWeeksInfo->filter(fn($a) => $a['week_initials'] != 'HOFW');
         $weekInfo['season_type_id'] = $seasonTypeId;
+        $currentMatch = $weekGames->firstWhere('current_match', true);
 
         return [
             'current_week' => $weekInfo,
             'all_weeks' => $withoutHOFW ,
             'hasMatchToday' => $this->apiRepository->hasMatchToday(),
-            'data' => $weekGames
+            'data' => $weekGames,
+            'currentMatch' => $currentMatch
         ];
     }
 
@@ -832,7 +834,7 @@ class NflScoresRepository
             $game['hometeam'] = $this->parseNflTeam($game->hometeam);
             $game['game_date'] = $gameDate;
             $game['game_status'] = $game['status'] == 'Not Started' ? $gameDate : $game->status;
-            $game['current_game'] = $game['game_status'];
+            $game['current_game'] = false;
 
             return $game;
         });
@@ -842,7 +844,7 @@ class NflScoresRepository
     {
         $games = $this->apiRepository->getScoreBoardDataFromApi();
 
-        return $games->map(function($game) {
+        $sorted =  $games->map(function($game) {
 
             $gameDate = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:ia');
             $game['awayteam'] = $this->parseNflTeam($game['awayteam']);
@@ -857,7 +859,9 @@ class NflScoresRepository
             }
 
             return $game;
-        });
+        })->sortBy('game_date');
+
+        return $sorted->values();
     }
 
     private function storeGame($game)

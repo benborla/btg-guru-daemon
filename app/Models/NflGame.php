@@ -91,8 +91,14 @@ class NflGame extends Model
         'home_rushing_stats',
         'away_rushing_stats',
         'home_receiving_stats',
-        'away_receiving_stats'
+        'away_receiving_stats',
+        'current_match'
     ];
+
+    public function getCurrentMatchAttribute()
+    {
+        return Carbon::parse($this->datetime_utc, 'UTC')->setTimeZone('Australia/Sydney')->isToday();
+    }
 
     public function getHomeTeamStatsAttribute()
     {
