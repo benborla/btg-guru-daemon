@@ -848,8 +848,18 @@ class NflScoresRepository
             $game['current_game'] = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->isToday();
             // $game['current_game'] = $game['contestID'] == '204610';
 
+            $this->storeGame($game);
+
             return $game;
         });
+    }
+
+    private function storeGame($game)
+    {
+        $this->model->updateOrCreate(
+            ['contest_id' => $game['contestID']],
+            $game
+        );
     }
 
     public function hasMatchToday()
