@@ -325,16 +325,15 @@ class FetchNflSchedules extends Command
                         });
                     }
 
-                    // $this->call('nfl:fetch-scores', [
-                    //     '--date' => $formatted,
-                    //     '--force' => true,
-                    //     '--store' => true,
-                    //     '--season' =>  collect($schedules->first())['season'],
-                    //     '--season_type_id' => $season['id'],
-                    //     '--season_type_name' => $season['name'],
-                    //     '--week' => $week+1,
-                    //     '--matches' => $match['match']
-                    // ]);
+                    $this->call('nfl:fetch-scores', [
+                        '--date' => $formatted,
+                        '--force' => true,
+                        '--store' => true,
+                        '--season' =>  collect($schedules->first())['season'],
+                        '--season_type_id' => $season['id'],
+                        '--season_type_name' => $season['name'],
+                        '--week' => $week+1,
+                    ]);
                 });
 
             });
