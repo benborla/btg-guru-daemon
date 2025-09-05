@@ -71,6 +71,7 @@ class NflApiRepository
             }
         })->filter();
 
+
         if ($filtered->count() > 0) return $filtered->first();
 
         return []; 
