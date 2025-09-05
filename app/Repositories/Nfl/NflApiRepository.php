@@ -107,27 +107,16 @@ class NflApiRepository
         $contestIds = $this->findTheCurrentWeek();
         $data = NFlGame::whereIn('contest_id', $contestIds)->get();
 
-        $filtered =  $data->groupBy('season_type_id')->map(function($matches) {
-            $matchesWithActualDate = $matches->map(function($match){
+        $filtered = $data->map(function($match){
 
-                $date = Carbon::parse($match->datetime_utc, 'UTC')->setTimeZone('Australia/Sydney')->format('Y-m-d');
-                $match['actual_date'] = $date;
+            $date = Carbon::parse($match->datetime_utc, 'UTC')->setTimeZone('Australia/Sydney')->format('Y-m-d');
+            $match['actual_date'] = $date;
 
-                return $match;
-            });
-
-
-            $minDate = $matchesWithActualDate->min('actual_date');
-
-            $checkDate = Carbon::parse(date('Y-m-d'));
-
-            if ($checkDate->lte($minDate)) {
-                return $matchesWithActualDate;
-            }
+            return $match;
         });
 
 
-        if ($filtered->count() > 0) return $filtered->first();
+        if ($filtered->count() > 0) return $filtered;
 
         return []; 
     }
