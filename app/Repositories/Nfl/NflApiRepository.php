@@ -55,7 +55,7 @@ class NflApiRepository
         $filtered =  $data->groupBy('season_type_id')->map(function($matches) {
             $matchesWithActualDate = $matches->map(function($match){
 
-                $date = Carbon::createFromFormat('d.m.Y', $match->formatted_date)->format('Y-m-d');
+                $date = Carbon::parse($match->datetime_utc, 'UTC')->setTimeZone('Australia/Sydney')->format('Y-m-d');
                 $match['actual_date'] = $date;
 
                 return $match;
