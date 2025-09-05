@@ -24,6 +24,7 @@ class FetchNflScores extends Command
                             {--season_type_name : NFL season year (default: current year)}
                             {--force : Force refresh cache}
                             {--store : Store results in database}
+                            {--matches : matches}
                             {--live : Fetch only live games with short cache}';
 
     /**
@@ -48,6 +49,7 @@ class FetchNflScores extends Command
 
         try {
             $options = $this->parseOptions();
+            $matches = $this->option('matches');
             $cacheKey = $this->buildCacheKey($options);
             $cacheTtl = $this->determineCacheTtl($options);
 
@@ -61,8 +63,10 @@ class FetchNflScores extends Command
                 $fromCache = true;
             } else {
                 $this->info('🌐 Fetching from API...');
-                $scores = $this->fetchFromApi($options);
+                //  $scores = $this->fetchFromApi($options);
+                $scores = $matches;
 
+                dd($scores);
                 if (empty($scores)) {
                     $this->error('❌ No scores returned from API');
                     return Command::FAILURE;
@@ -85,7 +89,7 @@ class FetchNflScores extends Command
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            /* $this->error("❌ Error: {$e->getMessage()}"); */
+            $this->error("❌ Error: {$e->getMessage()}"); 
             Log::error('NFL fetch command failed', [
                 'error' => $e->getMessage(),
                 /* 'trace' => $e->getTraceAsString() */
@@ -103,6 +107,7 @@ class FetchNflScores extends Command
         $season = $this->option('season') ?? date('Y');
         $seasonTypeId = $this->option('season_type_id') ?? '';
         $seasonTypeName = $this->option('season_type_name') ?? '';
+        $matches = $this->option('matches') ?? '';
 
         // Validate week
         /* if ($week && ($week < 1 || $week > 22)) { */
@@ -115,6 +120,7 @@ class FetchNflScores extends Command
             'season' => $season,
             'season_type_id' => $seasonTypeId,
             'season_type_name' => $seasonTypeName,
+            'matches' => $matches,
             'live_only' => $this->option('live'),
         ];
     }
@@ -137,6 +143,9 @@ class FetchNflScores extends Command
         }
         if ($options['live_only']) {
             $parts[] = 'live';
+        }
+        if ($options['matches']) {
+            $parts[] = "matches_{$options['matches']}";
         }
 
         return implode('_', $parts);

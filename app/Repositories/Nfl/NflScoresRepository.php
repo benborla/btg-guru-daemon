@@ -474,27 +474,28 @@ class NflScoresRepository
                 return $item;
             }
 
-
-
             if ($item['season_type_id'] == 1)
             {
-                $item['avg_for'] = '-';
-                $item['avg_agt'] = '-';
-                $item['avg_to'] = '-';
+                $item['avg_for'] = '0';
+                $item['avg_agt'] = '0';
+                $item['avg_to'] = '0';
             } else {
 
                 if ($i == 0) {
-                    $item['avg_for'] = $item['home_result_score'];
-                    $item['avg_agt'] = $item['away_result_score'];
-                    $item['avg_to'] =  $item['avg_for'] + $item['avg_agt'];
+                    $item['avg_for'] = 0;// $item['home_result_score'];
+                    $item['avg_agt'] = 0;// $item['away_result_score'];
+                    $item['avg_to'] =  0;// $item['avg_for'] + $item['avg_agt'];
                 } else {
 
                     $teamPoints = $weeks->take($i+1);
                     $avgFor =number_format(round($teamPoints->avg('home_result_score')),0);
                     $avgAgt =number_format(round($teamPoints->avg('away_result_score')),0);
-                    $item['avg_for'] = $avgFor;
-                    $item['avg_agt'] = $avgAgt;
-                    $item['avg_to'] =  $avgFor + $avgAgt;
+                    // $item['avg_for'] = $avgFor;
+                    // $item['avg_agt'] = $avgAgt;
+                    // $item['avg_to'] =  $avgFor + $avgAgt;
+                    $item['avg_for'] = 0;
+                    $item['avg_agt'] = 0;
+                    $item['avg_to'] =  0;
                 }
 
             }

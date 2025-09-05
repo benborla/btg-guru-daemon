@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Models\NflGame;
 
 class FetchNflSchedules extends Command
 {
@@ -64,7 +65,7 @@ class FetchNflSchedules extends Command
                 }
 
                 // Cache the results
-                Cache::put($cacheKey, collect($schedules), $cacheTtl);
+                // Cache::put($cacheKey, collect($schedules), $cacheTtl);
                 $fromCache = false;
             }
 
@@ -290,17 +291,50 @@ class FetchNflSchedules extends Command
                 $matches = collect($game['matches'])->map(function($match) use($season, $game, $schedules, $week){
                     $parsed = Carbon::parse($match['date']);
 
-                    // Convert to desired format (d.m.Y)
+                    // if (count($match['match']) > 0) {
+                        
                     $formatted = $parsed->format('d.m.Y');
-                    $this->call('nfl:fetch-scores', [
-                        '--date' => $formatted,
-                        '--force' => true,
-                        '--store' => true,
-                        '--season' =>  collect($schedules->first())['season'],
-                        '--season_type_id' => $season['id'],
-                        '--season_type_name' => $season['name'],
-                        '--week' => $week+1
-                    ]);
+                    $seasonYear = collect($schedules->first())['season'];
+                    $games = collect($match['match']);
+
+
+                    if(isset($match['match']['contestID'])) {
+                        $this->info("Found {$games->count()} games on $seasonYear - {$season['name']} - week " . ($week + 1));
+                    } else {
+                        $this->info("Found {$games->count()} games on $seasonYear - {$season['name']} - week " . ($week + 1));
+
+                        collect($match['match'])->map(function($a) use($season, $seasonYear, $week){
+
+                            $bar = $this->output->createProgressBar(1);
+                            $bar->setMessage('Updating/Creating NflGame Table...');
+                            $bar->start();
+                            NflGame::updateOrCreate(
+                                ['contest_id' => $a['contestID']],
+                                [
+                                ...$a,
+                                'season' => $seasonYear,
+                                'season_type_id' => $season['id'],
+                                'season_type_name' => $season['name'],
+                                'week' => $week+1,
+                            ]
+                            );
+
+                            $bar->advance();
+                            $bar->finish();
+                            $this->newLine();
+                        });
+                    }
+
+                    // $this->call('nfl:fetch-scores', [
+                    //     '--date' => $formatted,
+                    //     '--force' => true,
+                    //     '--store' => true,
+                    //     '--season' =>  collect($schedules->first())['season'],
+                    //     '--season_type_id' => $season['id'],
+                    //     '--season_type_name' => $season['name'],
+                    //     '--week' => $week+1,
+                    //     '--matches' => $match['match']
+                    // ]);
                 });
 
             });

@@ -92,8 +92,14 @@ class NflGame extends Model
         'away_rushing_stats',
         'home_receiving_stats',
         'away_receiving_stats',
-        'current_match'
+        'current_match',
+        'game_status'
     ];
+
+    public function getGameStatusAttribute()
+    {
+        return $this->status;
+    }
 
     public function getCurrentMatchAttribute()
     {
