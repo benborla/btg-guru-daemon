@@ -117,6 +117,7 @@ class NflGame extends Model
             'turnovers' => $homeStats['turnovers']['turnovers'] ?? 0,
             'first_downs' => $homeStats['first_downs']['total'] ?? 0,
             'possession' => $homeStats['posession']['total'] ?? 0,
+            'penalties' => $homeStats['penalties']['total'] ?? 0,
         ];
     }
 
@@ -131,6 +132,7 @@ class NflGame extends Model
             'turnovers' => $awayStats['turnovers']['turnovers'] ?? 0,
             'first_downs' => $awayStats['first_downs']['total'] ?? 0,
             'possession' => $awayStats['posession']['total'] ?? 0,
+            'penalties' => $awayStats['penalties']['total'] ?? 0,
         ];
     }
 
