@@ -827,10 +827,12 @@ class NflScoresRepository
 
         return $games->map(function($game) {
 
+            $gameDate = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:ia');
             $game['awayteam'] = $this->parseNflTeam($game->awayteam);
             $game['hometeam'] = $this->parseNflTeam($game->hometeam);
-            $game['game_date'] = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:ia');
-            $game['current_game'] = false;
+            $game['game_date'] = $gameDate;
+            $game['game_status'] = $game['status'] == 'Not Started' ? $gameDate : ($game['status'] == 'Final' ? $game->status : $game->status);
+            $game['current_game'] = $game['game_status'];
 
             return $game;
         });
