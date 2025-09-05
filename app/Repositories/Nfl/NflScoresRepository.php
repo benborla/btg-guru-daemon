@@ -829,7 +829,7 @@ class NflScoresRepository
 
             $game['awayteam'] = $this->parseNflTeam($game->awayteam);
             $game['hometeam'] = $this->parseNflTeam($game->hometeam);
-            $game['game_date'] = Carbon::parse($game['datetime_utc','UTC'])->setTimeZone('Australia/Sydney')->format('M j g:ia');
+            $game['game_date'] = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:ia');
             $game['current_game'] = false;
 
             return $game;
@@ -844,8 +844,8 @@ class NflScoresRepository
 
             $game['awayteam'] = $this->parseNflTeam($game['awayteam']);
             $game['hometeam'] = $this->parseNflTeam($game['hometeam']);
-            $game['game_date'] = Carbon::parse($game['datetime_utc','UTC'])->timeZone('Australia/Sydney')->format('M j g:ia');
-            $game['current_game'] = Carbon::parse($game['datetime_utc','UTC'])->timeZone('Australia/Sydney')->isToday();
+            $game['game_date'] = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:ia');
+            $game['current_game'] = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->isToday();
             // $game['current_game'] = $game['contestID'] == '204610';
 
             return $game;
