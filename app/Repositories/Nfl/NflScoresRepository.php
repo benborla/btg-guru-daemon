@@ -22,7 +22,7 @@ class NflScoresRepository
     public function __construct(
         private NflApiService $apiService,
         private NflGame $model,
-        public NflApiRepository $apiRepository      
+        public NflApiRepository $apiRepository
     ) {}
 
 
@@ -307,20 +307,13 @@ class NflScoresRepository
             ]
         )->first();
 
-
-        if(empty($schedules)) {
-
-            $yesterday = date('Y-m-d', strtotime('-1 day'));
-            $schedules = NflApiResponse::where(
-                [
-                    'date_fetched' => $yesterday,
-                    'season' => $season ?? date('Y')
-                ]
-            )->first();
+        if (empty($schedules)) {
+            return collect($this->apiRepository->getFullSchedule()['shedules']['tournament']);
         }
 
         return collect(json_decode($schedules->response, true)['shedules']['tournament']);
     }
+
 
     public function getSeasonTypes()
     {
@@ -578,7 +571,7 @@ class NflScoresRepository
 
         if ($filtered->count() > 0) return $filtered->first();
 
-        return []; 
+        return [];
     }
 
     private function formatNflScores($data)
@@ -817,13 +810,13 @@ class NflScoresRepository
               "Conference": "NFC",
               "Division": "East"
             }
-        ]'; 
+        ]';
 
         $teams = collect(json_decode($teams, true));
-        
+
         return $teams->where('ID', $teamId)->first();
     }
-    
+
     public function getScoreBoardDataFromDb()
     {
         $games=  $this->apiRepository->getCurrentScheduledGames();

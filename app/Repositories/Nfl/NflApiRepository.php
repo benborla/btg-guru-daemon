@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Http;
 class NflApiRepository
 {
     const API_NFL_SCORES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-scores?json=1";
+    const API_NFL_SCHEDULES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-schedule?json=1";
     const CACHE_SECONDS = 10;
 
     public bool $needToStore = false;
@@ -52,12 +53,30 @@ class NflApiRepository
         return collect($response['scores']['category']['match']);
     }
 
+    public function fetchApiSchedules()
+    {
+        $response = Http::get(self::API_NFL_SCHEDULES_URL);
+
+        // add new row
+        $schedules = NflApiResponse::updateOrCreate(
+            [
+                'date_fetched' => date('Y-m-d'),
+                'season' => date('Y')
+            ],
+            [
+                'response' => json_encode($response->json())
+            ]
+        );
+
+        return $response;
+    }   
+
     public function getFullSchedule() 
     {
        $data = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
 
        if (empty($data)) {
-        $data = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d', strtotime('-1 day')));
+        return $this->fetchApiSchedules();
        }
 
        $data = json_decode($data->response, true);
