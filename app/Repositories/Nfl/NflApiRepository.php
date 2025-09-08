@@ -9,12 +9,14 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\NflGame;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+use App\Models\NflGamePlaybyplayScores;
 
 class NflApiRepository
 {
     const API_NFL_SCORES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-scores?json=1";
     const API_NFL_SCHEDULES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-schedule?json=1";
     const API_NFL_STANDINGS_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-standings?json=1";
+    const API_NFL_PLAYBYPLAY_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-playbyplay-scores?json=1";
     const CACHE_SECONDS = 10;
 
     public bool $needToStore = false;
@@ -63,7 +65,48 @@ class NflApiRepository
         return $response->json();
     }
 
-     public function getScoreBoardDataFromApi()
+    public function fetchApiPlayByPlay($isLive = false)
+    {
+        $cacheKey = "nfl_api_playbyplay" . date('Y-m-d');
+
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $response = Http::get(self::API_NFL_PLAYBYPLAY_URL);
+        $defaultCache = now()->addDays(1);
+
+        if ($isLive) {
+            $defaultCache = now()->addSeconds(10);
+        }
+
+        $this->storePlayByPlay($response->json());
+        Cache::put($cacheKey, $response->json(), $defaultCache);
+
+        return $response->json();
+    }
+
+    private function storePlayByPlay($response)
+    {
+        $match = collect($response['scores']['category']['match']);
+
+        if ($match->count() >= 0) {
+
+            $match->map(function($item){
+                NflGamePlaybyplayScores::updateOrCreate(
+                    [
+                        'contest_id' => $item['contestID']
+                    ],
+                    [
+                        'response' => $item
+                    ]
+                );
+            });
+        
+        }
+    }
+    
+    public function getScoreBoardDataFromApi()
     {
         $response = $this->fetchApiScores();
 
@@ -184,6 +227,19 @@ class NflApiRepository
     public function getCurrentWeek()
     {
         return  $this->getCurrentScheduledGames()->first()->week;
+    }
+
+    public function getPlayByPlayScores($contestId)
+    {
+        $playByPlay = NflGamePlaybyplayScores::where('contest_id', $contestId)->first();
+
+        if (empty($playByPlay)) {
+            $this->fetchApiPlayByPlay();
+            // retrieve
+            $playByPlay = NflGamePlaybyplayScores::where('contest_id', $contestId)->first();
+        }
+
+        return $playByPlay;
     }
     
 }

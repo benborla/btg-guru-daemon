@@ -95,7 +95,13 @@ class NflGame extends Model
         'home_receiving_stats',
         'away_receiving_stats',
         'current_match',
+        'has_ot'
     ];
+
+    public function getHasOtAttribute()
+    {
+        return $this->home_ot > 0 || $this->away_ot > 0;
+    }
 
     public function getAwayTeamIdAttribute()
     {
@@ -193,7 +199,7 @@ class NflGame extends Model
 
     public function getAwayOtAttribute()
     {
-        return $this->awayteam['ot'];
+        return (int) $this->awayteam['ot'];
     }
 
     public function getAwayRushingStatsAttribute()
