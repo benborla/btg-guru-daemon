@@ -16,4 +16,15 @@ class NflGamePlaybyplayScores extends Model
     protected $casts = [
         'response' => 'array',
     ];
+
+    protected $appends = [
+        'home_team_image_name'
+    ];
+
+    public function getHomeTeamImageNameAttribute()
+    {
+        $homeTeamName = $this->response['hometeam']['name'] ?? '';
+        
+        return str_replace(' ', '_', $homeTeamName);
+    }
 }

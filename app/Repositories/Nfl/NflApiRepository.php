@@ -232,7 +232,6 @@ class NflApiRepository
     public function getPlayByPlayScores($contestId)
     {
         $playByPlay = NflGamePlaybyplayScores::where('contest_id', $contestId)->first();
-        $data = null;
 
         if (empty($playByPlay)) {
             $this->fetchApiPlayByPlay();
@@ -240,7 +239,7 @@ class NflApiRepository
             $playByPlay = NflGamePlaybyplayScores::where('contest_id', $contestId)->first();
         }
 
-        return $playByPlay->response;
+        return $playByPlay;
     }
     
 }
