@@ -163,7 +163,7 @@ class NflApiRepository
 
         $matchesStatus = $dataToday->map(function($match){
             $gameDate = Carbon::parse($match->datetime_utc, "UTC")->setTimeZone('Australia/Sydney');
-            $hasTodayMatch = $gameDate->isToday();
+            $hasTodayMatch = $gameDate->diffInSeconds(now()) > 180;
 
             return [
                 'todayMatch' => $hasTodayMatch,
@@ -174,6 +174,7 @@ class NflApiRepository
         $hasMatchToday = $matchesStatus->contains(function ($item) {
             return $item['todayMatch'] == true && $item['gameIsOver'] == false;
         });
+        
         
         
 
