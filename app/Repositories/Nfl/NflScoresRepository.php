@@ -221,13 +221,6 @@ class NflScoresRepository
 
     }
 
-    public function getTeamStandings(string $season, string $teamId) :array
-    {
-        $data = Cache::get($this->cacheKeyStanding . $season);
-
-        return (new NflStandingsDto($data))->getTeamStandings($season, $teamId);
-    }
-
     public function getScores($season, $week)
     {
         $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
@@ -287,6 +280,13 @@ class NflScoresRepository
         $withoutHOFW = $allWeeksInfo->filter(fn($a) => $a['week_initials'] != 'HOFW');
         $weekInfo['season_type_id'] = $seasonTypeId;
         $currentMatch = $weekGames->firstWhere('current_match', true);
+        $weekGames = $weekGames->map(function($a) {
+            $awayTeamStandings = $this->getTeamStandings($a['away_team_id']);
+            $homeTeamStandings = $this->getTeamStandings($a['home_team_id']);
+            $a['away_standings'] = $awayTeamStandings;
+            $a['home_standings'] = $homeTeamStandings;
+            return $a;
+        });
 
         return [
             'current_week' => $weekInfo,
@@ -844,7 +844,8 @@ class NflScoresRepository
             $game['awayteam'] = $this->parseNflTeam($game['awayteam']);
             $game['hometeam'] = $this->parseNflTeam($game['hometeam']);
             $game['game_date'] = $gameDate;
-            $game['current_game'] = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->isToday();
+            $gameHasStarted = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->diffInMinutes(now()->setTimeZone('Australia/Sydney'));
+            $game['current_game'] = $gameHasStarted > 1 && ($game['status'] != 'Not Started' || $game['status'] != 'Final');
             $game['game_status'] = $game['status'] == 'Not Started' ? $gameDate : $game['status'];
             // $game['current_game'] = $game['contestID'] == '204610';
 
@@ -899,6 +900,31 @@ class NflScoresRepository
         $weekInfo['season_type_id'] = $currentWeekSchedule->season_type_id;
 
         return $weekInfo;
+    }
+
+    public function getTeamStandingsFlat()
+    {
+        $standings = $this->apiRepository->fetchApiStandings();
+        $standings = collect($standings['standings']['category']['league'])->map(function($league) {
+            return $league['division'];
+        });
+
+        return $standings->collapse()->map(function($division) {
+            return $division['team'];
+        })->collapse();
+    }
+
+    public function getTeamStandings($teamId)
+    {
+        $flatStandings = $this->getTeamStandingsFlat();
+
+        $standings = $flatStandings->where('id', $teamId);
+
+        if ($standings->count() == 0) {
+            return [];
+        }
+
+        return $standings->first();
     }
 }
 

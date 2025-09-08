@@ -14,6 +14,7 @@ class NflApiRepository
 {
     const API_NFL_SCORES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-scores?json=1";
     const API_NFL_SCHEDULES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-schedule?json=1";
+    const API_NFL_STANDINGS_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-standings?json=1";
     const CACHE_SECONDS = 10;
 
     public bool $needToStore = false;
@@ -42,6 +43,22 @@ class NflApiRepository
 
         Cache::put($cacheKey, $response->json(), now()->addSeconds(self::CACHE_SECONDS));
         $this->needToStore = true;
+
+        return $response->json();
+    }
+
+    public function fetchApiStandings()
+    {
+        $cacheKey = "nfl_api_standings_" . date('Y-m-d');
+
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $response = Http::get(self::API_NFL_STANDINGS_URL);
+        $oneDayCache = now()->addDays(1);
+
+        Cache::put($cacheKey, $response->json(), $oneDayCache);
 
         return $response->json();
     }

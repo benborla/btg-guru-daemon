@@ -66,6 +66,8 @@ class NflGame extends Model
     ];
 
     protected $appends = [
+        'away_team_id',
+        'home_team_id',
         'away_team_image_name',
         'home_team_image_name',
         'away_team_name',
@@ -95,6 +97,15 @@ class NflGame extends Model
         'current_match',
     ];
 
+    public function getAwayTeamIdAttribute()
+    {
+        return $this->awayteam['id'];
+    }
+
+    public function getHomeTeamIdAttribute()
+    {
+        return $this->hometeam['id'];
+    }
 
     public function getCurrentMatchAttribute()
     {
