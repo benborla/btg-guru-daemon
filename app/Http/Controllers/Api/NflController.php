@@ -77,12 +77,14 @@ class NflController extends Controller
 
         $allTeams = $this->repository->getTeamsInfo($season);
         $teamInfo = $allTeams['AFC']->firstWhere('id', $teamId) ?? $allTeams['NFC']->firstWhere('id', $teamId);
+        $teamStandings = $this->repository->getTeamStandings($teamId);
 
         return response()->json([
             'teams' => $allTeams,
             'teamInfo' => $teamInfo ?? [],
             'seasonTypes' => $seasonTypes,
-            'data' => $weeksData
+            'data' => $weeksData,
+            'standings' => $teamStandings ?? []
         ]);
     }
 
