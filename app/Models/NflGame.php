@@ -205,11 +205,17 @@ class NflGame extends Model
     {
         $awayTeam = $this->passing['awayteam']['player'] ?? [];
         $passingStats = [];
+
+        if (isset($awayTeam['name'])) {
+          $awayTeam = [$awayTeam]; 
+        }
+    
         
         foreach ($awayTeam as $player) {
             if (isset($player['yards']) && $player['yards'] > 0) {
                 $passingStats[] = [
                     'name' => $player['name'],
+                    'id' => $player['id'],
                     'yards' => $player['yards'],
                     'comp_att' => $player['comp_att'],
                     'touchdowns' => $player['passing_touch_downs'],
@@ -226,11 +232,17 @@ public function getHomePassingStatsAttribute()
 {
     $homeTeam = $this->passing['hometeam']['player'] ?? [];
     $passingStats = [];
+
+    if (isset($homeTeam['name'])) {
+       $homeTeam = [$homeTeam]; 
+    }
     
     foreach ($homeTeam as $player) {
         if (isset($player['yards']) && $player['yards'] > 0) {
+
             $passingStats[] = [
                 'name' => $player['name'],
+                'id' => $player['id'],
                 'yards' => $player['yards'],
                 'comp_att' => $player['comp_att'],
                 'touchdowns' => $player['passing_touch_downs'],
