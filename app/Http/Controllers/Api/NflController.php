@@ -149,4 +149,10 @@ class NflController extends Controller
         );
     }
 
+    public function matchCastBox($matchId, $week)
+    {
+        return response()->json(
+            $this->repository->getMatchCastBoxData($matchId, $week)
+        );
+    }
 }

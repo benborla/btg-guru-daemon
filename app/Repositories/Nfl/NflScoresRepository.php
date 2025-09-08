@@ -926,5 +926,22 @@ class NflScoresRepository
 
         return $standings->first();
     }
+
+    public function getMatchCastBoxData($contestId, $week)
+    {
+        $data = NflGame::where([
+            'contest_id' => $contestId,
+            'week' => $week
+        ])->first();
+
+        if (empty($data)) {
+            return [];
+        }
+
+        return [
+            'playbyplay' => $this->apiRepository->getPlayByPlayScores($contestId),
+            'data' => $data
+        ];
+    }
 }
 
