@@ -120,7 +120,9 @@ class NflGame extends Model
 
         return [
             'yards' => $homeStats['yards']['total'] ?? 0,
-            'turnovers' => $homeStats['turnovers']['turnovers'] ?? 0,
+            'turnovers' => $homeStats['turnovers']['total'] ?? 0,
+            'rushings' => $homeStats['rushings']['total'] ?? 0,
+            'passings' => $homeStats['passing']['total'] ?? 0,
             'first_downs' => $homeStats['first_downs']['total'] ?? 0,
             'possession' => $homeStats['posession']['total'] ?? 0,
             'penalties' => $homeStats['penalties']['total'] ?? 0,
@@ -135,7 +137,9 @@ class NflGame extends Model
 
         return [
             'yards' => $awayStats['yards']['total'] ?? 0,
-            'turnovers' => $awayStats['turnovers']['turnovers'] ?? 0,
+            'turnovers' => $awayStats['turnovers']['total'] ?? 0,
+            'rushings' => $awayStats['rushings']['total'] ?? 0,
+            'passings' => $awayStats['passing']['total'] ?? 0,
             'first_downs' => $awayStats['first_downs']['total'] ?? 0,
             'possession' => $awayStats['posession']['total'] ?? 0,
             'penalties' => $awayStats['penalties']['total'] ?? 0,
