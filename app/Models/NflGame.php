@@ -108,6 +108,16 @@ class NflGame extends Model
     public function getEventsSortedAttribute()
     {
         $events =  $this->events ?? [];
+        $emptyEvent = [
+           "type" => "-",
+           "team" => "-",
+           "player_id" => "-",
+           "player" => "-",
+           "min" => "-",
+           "id" => "-",
+           "home_score" => "-",
+           "away_score" => "-"
+        ];
 
         $sorted = [];
 
@@ -145,6 +155,15 @@ class NflGame extends Model
             'start_name' => 'Start of 4th Quarter',
             'end_name' =>  $events['overtime'] ? 'End of 4th Quarter' : 'Final',
           ];
+        } else {
+          // must still show an empty entry
+          $sorted[] = [
+            'name' => '4th Quarter',
+            'short' => '4th',
+            'events' => [$emptyEvent],
+            'start_name' => '',
+            'end_name' =>  '4th Quarter'
+          ];
         }
 
         if ($events['thirdquarter']) {
@@ -161,7 +180,7 @@ class NflGame extends Model
             'short' => '3rd',
             'events' => $q3,
             'start_name' => 'Start of 3rd Quarter',
-            'end_name' => 'End of 3rd Quarter',
+            'end_name' => $events['fourthquarter'] ? 'End of 3rd Quarter' : 'Final',
           ];
         }
         if ($events['secondquarter']) {
