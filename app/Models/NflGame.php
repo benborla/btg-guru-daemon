@@ -95,8 +95,112 @@ class NflGame extends Model
         'home_receiving_stats',
         'away_receiving_stats',
         'current_match',
-        'has_ot'
+        'events_sorted',
+        'has_ot',
+        'formatted_full_time'
     ];
+
+    public function getFormattedFullTimeAttribute()
+    {
+        return Carbon::parse($this->datetime_utc, 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:i a');
+    }
+
+    public function getEventsSortedAttribute()
+    {
+        $events =  $this->events ?? [];
+
+        $sorted = [];
+
+        if ($events['overtime']) {
+          $ot = collect($events['overtime']['event'])->reverse();
+
+          if (isset($ot['type'])) {
+            $ot = [$ot];
+          } else {
+            $ot = $ot->values();
+          }
+
+          $sorted[] = [
+            'name' => 'Overtime',
+            'short' => 'OT',
+            'events' => $ot,
+            'start_name' => 'Start of Overtime',
+            'end_name' => 'End of Overtime',
+          ];
+        }
+
+        if($events['fourthquarter']) {
+          $q4 = collect($events['fourthquarter']['event'])->reverse();
+
+          if (isset($q4['type'])) {
+            $q4 = [$q4];
+          } else {
+            $q4 = $q4->values();
+          }
+
+          $sorted[] = [
+            'name' => '4th Quarter',
+            'short' => '4th',
+            'events' => $q4,
+            'start_name' => 'Start of 4th Quarter',
+            'end_name' =>  $events['overtime'] ? 'End of 4th Quarter' : 'Final',
+          ];
+        }
+
+        if ($events['thirdquarter']) {
+          $q3 = collect($events['thirdquarter']['event'])->reverse();
+
+          if (isset($q3['type'])) {
+            $q3 = [$q3];
+          } else {
+            $q3 = $q3->values();
+          }
+
+          $sorted[] = [
+            'name' => '3rd Quarter',
+            'short' => '3rd',
+            'events' => $q3,
+            'start_name' => 'Start of 3rd Quarter',
+            'end_name' => 'End of 3rd Quarter',
+          ];
+        }
+        if ($events['secondquarter']) {
+          $q2 = collect($events['secondquarter']['event'])->reverse();
+
+          if (isset($q2['type'])) {
+            $q2 = [$q2];
+          } else {
+            $q2 = $q2->values();
+          }
+
+          $sorted[] = [
+            'name' => '2nd Quarter',
+            'short' => '2nd',
+            'events' => $q2,
+            'start_name' => 'Start of 2nd Quarter',
+            'end_name' => 'End of 2nd Quarter',
+          ];
+        }
+        if ($events['firstquarter']) {
+          $q1 = collect($events['firstquarter']['event'])->reverse();
+
+          if (isset($q1['type'])) {
+            $q1 = [$q1];
+          } else {
+            $q1 = $q1->values();
+          }
+
+          $sorted[] = [
+            'name' => '1st Quarter',
+            'short' => '1st',
+            'start_name' => 'Start of 1st Quarter',
+            'end_name' => 'End of 1st Quarter',
+            'events' => $q1
+          ];
+        }
+
+        return $sorted;
+    }
 
     public function getHasOtAttribute()
     {
