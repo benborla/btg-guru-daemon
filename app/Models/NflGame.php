@@ -157,10 +157,13 @@ class NflGame extends Model
           ];
         } else {
           // must still show an empty entry
+          // must show the final score
           $sorted[] = [
             'name' => '4th Quarter',
             'short' => '4th',
-            'events' => [$emptyEvent],
+            'events' => [
+              [...$emptyEvent, 'home_score' => $this->home_score, 'away_score' => $this->away_score]
+            ],
             'start_name' => '',
             'end_name' =>  '4th Quarter'
           ];
