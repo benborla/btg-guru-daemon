@@ -121,7 +121,7 @@ class NflGame extends Model
 
         $sorted = [];
 
-        if ($events['overtime']) {
+        if (!empty($events['overtime'])) {
           $ot = collect($events['overtime']['event'])->reverse();
 
           if (isset($ot['type'])) {
@@ -139,7 +139,7 @@ class NflGame extends Model
           ];
         }
 
-        if($events['fourthquarter']) {
+        if(!empty($events['fourthquarter'])) {
           $q4 = collect($events['fourthquarter']['event'])->reverse();
 
           if (isset($q4['type'])) {
@@ -166,7 +166,7 @@ class NflGame extends Model
           ];
         }
 
-        if ($events['thirdquarter']) {
+        if (!empty($events['thirdquarter'])) {
           $q3 = collect($events['thirdquarter']['event'])->reverse();
 
           if (isset($q3['type'])) {
@@ -183,7 +183,7 @@ class NflGame extends Model
             'end_name' => $events['fourthquarter'] ? 'End of 3rd Quarter' : 'Final',
           ];
         }
-        if ($events['secondquarter']) {
+        if (!empty($events['secondquarter'])) {
           $q2 = collect($events['secondquarter']['event'])->reverse();
 
           if (isset($q2['type'])) {
@@ -200,7 +200,7 @@ class NflGame extends Model
             'end_name' => 'End of 2nd Quarter',
           ];
         }
-        if ($events['firstquarter']) {
+        if (!empty($events['firstquarter'])) {
           $q1 = collect($events['firstquarter']['event'])->reverse();
 
           if (isset($q1['type'])) {
