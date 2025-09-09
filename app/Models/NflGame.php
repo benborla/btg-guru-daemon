@@ -97,8 +97,89 @@ class NflGame extends Model
         'current_match',
         'events_sorted',
         'has_ot',
-        'formatted_full_time'
+        'formatted_full_time',
+        'spreadbox'
     ];
+
+    public function getSpreadboxAttribute()
+    {
+      $awayq1 = $this->away_q1 ?? 0;
+      $awayq2 = $this->away_q2 ?? 0;
+      $away1h = $awayq1 + $awayq2;
+      $awayq3 = $this->away_q3 ?? 0;
+      $awayq4 = $this->away_q4 ?? 0;
+      $away2h = $awayq3 + $awayq4;
+      $awayot = $this->away_ot ?? 0;
+      $awayTotal = $awayq1 + $awayq2 + $awayq3 + $awayq4 + $awayot;
+
+      $homeq1 = $this->home_q1 ?? 0;
+      $homeq2 = $this->home_q2 ?? 0;
+      $home1h = $homeq1 + $homeq2;
+      $homeq3 = $this->home_q3 ?? 0;
+      $homeq4 = $this->home_q4 ?? 0;
+      $home2h = $homeq3 + $homeq4;
+      $homeot = $this->home_ot ?? 0;
+      $homeTotal = $homeq1 + $homeq2 + $homeq3 + $homeq4 + $homeot;
+
+      $data[] = [
+        'name' => '1st',
+        'away_score' => $awayq1,
+        'away_spread' => $awayq1 < $homeq1 ? "+" . ($homeq1 - $awayq1) : ($awayq1 == $homeq1 ? "0" : "-" . ($awayq1 - $homeq1)),
+        'home_score' => $homeq1,
+        'home_spread' => $homeq1 < $awayq1 ? "+" . ($awayq1 - $homeq1) : ($homeq1 == $awayq1 ? "0" : "-" . ($homeq1 - $awayq1))
+      ]; 
+
+      $data[] = [
+        'name' => '2nd',
+        'away_score' => $awayq2,
+        'away_spread' => $awayq2 < $homeq2 ? "+" . ($homeq2 - $awayq2) : ($awayq2 == $homeq2 ? "0" : "-" . ($awayq2 - $homeq2)),
+        'home_score' => $homeq2,
+        'home_spread' => $homeq2 < $awayq2 ? "+" . ($awayq2 - $homeq2) : ($homeq2 == $awayq2 ? "0" : "-" . ($homeq2 - $awayq2))
+      ]; 
+
+      $data[] = [
+        'name' => 'Half',
+        'away_score' => $away1h,
+        'away_spread' => $away1h < $home1h ? "+" . ($home1h - $away1h) : ($away1h == $home1h ? "0" : "-" . ($away1h - $home1h)),
+        'home_score' => $home1h,
+        'home_spread' => $home1h < $away1h ? "+" . ($away1h - $home1h) : ($home1h == $away1h ? "0" : "-" . ($home1h - $away1h))
+      ]; 
+
+      $data[] = [
+        'name' => '3rd',
+        'away_score' => $awayq3,
+        'away_spread' => $awayq3 < $homeq3 ? "+" . ($homeq3 - $awayq3) : ($awayq3 == $homeq3 ? "0" : "-" . ($awayq3 - $homeq3)),
+        'home_score' => $homeq3,
+        'home_spread' => $homeq3 < $awayq3 ? "+" . ($awayq3 - $homeq3) : ($homeq3 == $awayq3 ? "0" : "-" . ($homeq3 - $awayq3))
+      ]; 
+
+      $data[] = [
+        'name' => '4th',
+        'away_score' => $awayq4,
+        'away_spread' => $awayq4 < $homeq4 ? "+" . ($homeq4 - $awayq4) : ($awayq4 == $homeq4 ? "0" : "-" . ($awayq4 - $homeq4)),
+        'home_score' => $homeq4,
+        'home_spread' => $homeq4 < $awayq4 ? "+" . ($awayq4 - $homeq4) : ($homeq4 == $awayq4 ? "0" : "-" . ($homeq4 - $awayq4))
+      ]; 
+
+      $data[] = [
+        'name' => '2nd Half',
+        'away_score' => $away2h,
+        'away_spread' => $away2h < $home2h ? "+" . ($home2h - $away2h) : ($away2h == $home2h ? "0" : "-" . ($away2h - $home2h)),
+        'home_score' => $home2h,
+        'home_spread' => $home2h < $away2h ? "+" . ($away2h - $home2h) : ($home2h == $away2h ? "0" : "-" . ($home2h - $away2h))
+      ]; 
+
+      $data[] = [
+        'name' => 'Match',
+        'away_score' => $awayTotal,
+        'away_spread' => $awayTotal < $homeTotal ? "+" . ($homeTotal - $awayTotal) : ($awayTotal == $homeTotal ? "0" : "-" . ($awayTotal - $homeTotal)),
+        'home_score' => $homeTotal,
+        'home_spread' => $homeTotal < $awayTotal ? "+" . ($awayTotal - $homeTotal) : ($homeTotal == $awayTotal ? "0" : "-" . ($homeTotal - $awayTotal))
+      ]; 
+
+
+      return $data;
+    }
 
     public function getFormattedFullTimeAttribute()
     {
