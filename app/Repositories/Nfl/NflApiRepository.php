@@ -217,9 +217,7 @@ class NflApiRepository
         $hasMatchToday = $matchesStatus->contains(function ($item) {
             return $item['todayMatch'] == true && $item['gameIsOver'] == false;
         });
-        
-        
-        
+
 
         return $hasMatchToday;
     }
