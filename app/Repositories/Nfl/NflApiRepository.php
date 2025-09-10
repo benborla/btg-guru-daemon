@@ -17,6 +17,8 @@ class NflApiRepository
     const API_NFL_SCHEDULES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-schedule?json=1";
     const API_NFL_STANDINGS_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-standings?json=1";
     const API_NFL_PLAYBYPLAY_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-playbyplay-scores?json=1";
+    const API_NFL_ROOSTERS_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/%s_rosters?json=1";
+
     const CACHE_SECONDS = 10;
 
     public bool $needToStore = false;
@@ -84,6 +86,33 @@ class NflApiRepository
         Cache::put($cacheKey, $response->json(), $defaultCache);
 
         return $response->json();
+    }
+
+    public function fetchApiRosters($teamId)
+    {
+        $cacheKey = "nfl_api_rosters_" . $teamId;
+        $emptyResponseCacheKey = "nfl_api_rosters_empty_" . $teamId;
+
+        if (Cache::has($emptyResponseCacheKey)) {
+            return [];
+        }
+
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $response = Http::get(str_replace('%s', $teamId, self::API_NFL_ROOSTERS_URL));
+        $defaultCache = now()->addYears(1);
+
+        if ($response->json() == null) {
+            Cache::put($emptyResponseCacheKey, 'team_' . $teamId . '_is_empty', $defaultCache);
+            return [];
+        }
+
+        $players = $response->json()['team']['position'];
+        Cache::put($cacheKey, $players, $defaultCache);
+
+        return $players;
     }
 
     private function storePlayByPlay($response)
@@ -239,6 +268,7 @@ class NflApiRepository
 
         return $playByPlay;
     }
+
     
 }
 

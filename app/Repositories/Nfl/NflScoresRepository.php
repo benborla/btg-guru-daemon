@@ -948,5 +948,23 @@ class NflScoresRepository
             'away_standings' => $this->getTeamStandings($data->away_team_id)
         ];
     }
+
+    public function getTeamRoosters($teamId)
+    {
+        $roosters = $this->apiRepository->fetchApiRosters($teamId);
+
+        $roosters = collect($roosters)->flatMap(function($rooster) {
+            return collect($rooster['player'])->map(function($player) use($rooster) {
+                return [
+                    ...$player,
+                    'type' => $rooster['name'],
+                ];
+            });
+        });
+
+
+        return $roosters;
+    }
+
 }
 

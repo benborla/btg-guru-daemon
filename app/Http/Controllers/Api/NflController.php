@@ -155,4 +155,19 @@ class NflController extends Controller
             $this->repository->getMatchCastBoxData($matchId, $week)
         );
     }
+
+    public function getRoosters($teamIds)
+    {
+        $ids = explode('+', $teamIds);
+        $roosters = [];
+
+        foreach ($ids as $id) {
+            $roosters[] = [
+                'teamId' => $id,
+                'data' => $this->repository->getTeamRoosters($id)
+            ];
+        }
+
+        return response()->json($roosters);
+    }
 }
