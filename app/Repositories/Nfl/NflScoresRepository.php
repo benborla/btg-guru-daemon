@@ -840,6 +840,7 @@ class NflScoresRepository
 
         $sorted =  $games->map(function($game) {
 
+            $storedData = NflGame::where('contest_id', $game['contestID'])->first();
             $gameDate = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:ia');
             $game['awayteam'] = $this->parseNflTeam($game['awayteam']);
             $game['hometeam'] = $this->parseNflTeam($game['hometeam']);
@@ -847,6 +848,8 @@ class NflScoresRepository
             $gameHasStarted = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->diffInMinutes(now()->setTimeZone('Australia/Sydney'));
             $game['current_game'] = $gameHasStarted > 1 && ($game['status'] != 'Not Started' || $game['status'] != 'Final');
             $game['game_status'] = $game['status'] == 'Not Started' ? $gameDate : $game['status'];
+            $game['contest_id'] = $game['contestID'];
+            $game['week'] = $storedData['week'];
             // $game['current_game'] = $game['contestID'] == '204610';
 
             if ($this->apiRepository->needToStore) {
@@ -940,7 +943,9 @@ class NflScoresRepository
 
         return [
             'playbyplay' => $this->apiRepository->getPlayByPlayScores($contestId),
-            'data' => $data
+            'data' => $data,
+            'home_standings' => $this->getTeamStandings($data->home_team_id),
+            'away_standings' => $this->getTeamStandings($data->away_team_id)
         ];
     }
 }

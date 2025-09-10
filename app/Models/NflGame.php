@@ -98,8 +98,14 @@ class NflGame extends Model
         'events_sorted',
         'has_ot',
         'formatted_full_time',
-        'spreadbox'
+        'spreadbox',
+        'score_page_time'
     ];
+
+    public function getScorePageTimeAttribute()
+    {
+      return Carbon::parse($this->datetime_utc, 'UTC')->setTimeZone('Australia/Sydney')->format('D m/d g:i A');
+    }
 
     public function getSpreadboxAttribute()
     {
