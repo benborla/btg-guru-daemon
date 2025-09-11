@@ -253,7 +253,7 @@ class NflGame extends Model
         } else {
           // must still show an empty entry
           // must show the final score
-          if ($this->events['thirdquarter'] ) {
+          if (!empty($this->events['thirdquarter'])) {
           $sorted[] = [
             'name' => '4th Quarter',
             'short' => '4th',
