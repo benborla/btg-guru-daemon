@@ -679,14 +679,22 @@ class AflService
 
                     $gameDate = Carbon::parse($c['@date']);
                     $currentDate = Carbon::now();
+                    $diffDay = $gameDate->diffInDays($currentDate);
 
-                    if ($gameDate->greaterThan($currentDate)) {
+                    if ($diffDay < 1) {
+                    //     dump($diffDay);
+                    // dump($gameDate, $currentDate);
                         $c['actual_date'] = $gameDate->format('Y-m-d');
+                        // dump($c);
                         return $c;
+                    } else {
+                        // dump($diffDay);
+                        // dump($c['@date']);
                     }
 
                     return null;
                 })->filter();
+
 
                 if ($filtered->count() > 0) {
                     $b['match'] = $filtered;
@@ -717,7 +725,8 @@ class AflService
             });
 
             return $matches;
-        })->first()->map(function($a){
+        });
+        $data = $data->first()->map(function($a){
             $a['match_id'] = $a['@id'];
             $a['venue'] = $a['@venue'];
             $a['date'] = $a['@date'];
