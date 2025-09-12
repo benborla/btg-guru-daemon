@@ -662,6 +662,9 @@ class AflService
 
         // determine here the current season
         $data = $seasons->map(function($a) {
+            if (!isset($a['week'])) {
+                return [];
+            }
             $rounds = collect($a['week'])->map(function($b) {
 
                 $match = collect($b['match']);
@@ -740,6 +743,7 @@ class AflService
             return $a;
         });
 
-        return $data;
+
+        return $data->values();
     }
 }
