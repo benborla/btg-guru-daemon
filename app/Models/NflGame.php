@@ -101,13 +101,16 @@ class NflGame extends Model
         'spreadbox',
         'score_page_time',
         'current_game_status',
+       
         
     ];
 
     public function getCurrentGameStatusAttribute()
     {
       $australiaTime = Carbon::parse($this->datetime_utc, 'UTC')->setTimeZone('Australia/Sydney');
-      return $this->status == 'Not Started' ? $australiaTime->format('D m/d g:i A') : $this->status;
+      $status = $this->status == 'After Over Time' ? "(OT)" : $this->status;
+
+      return $this->status == 'Not Started' ? $australiaTime->format('D m/d g:i A') : $status;
     }
 
     public function getScorePageTimeAttribute()
