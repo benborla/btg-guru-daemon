@@ -230,7 +230,7 @@ class NflGame extends Model
             'short' => 'OT',
             'events' => $ot,
             'start_name' => 'Start of Overtime',
-            'end_name' => 'End of Overtime',
+            'end_name' => $this->status == 'After Over Time' ? 'End of Overtime' : '-',
           ];
         }
 
@@ -248,7 +248,7 @@ class NflGame extends Model
             'short' => '4th',
             'events' => $q4,
             'start_name' => 'Start of 4th Quarter',
-            'end_name' =>  $events['overtime'] ? 'End of 4th Quarter' : 'Final',
+            'end_name' =>  !empty($events['overtime']) ? 'End of 4th Quarter' : ($this->status == 'Final' ? 'Final' : '-'),
           ];
         } else {
           // must still show an empty entry
@@ -280,9 +280,10 @@ class NflGame extends Model
             'short' => '3rd',
             'events' => $q3,
             'start_name' => 'Start of 3rd Quarter',
-            'end_name' => $events['fourthquarter'] ? 'End of 3rd Quarter' : 'Final',
+            'end_name' => $events['fourthquarter'] ? 'End of 3rd Quarter' : (empty($events['fourthquarter']) ? 'Final' : ''),
           ];
         }
+
         if (!empty($events['secondquarter'])) {
           $q2 = collect($events['secondquarter']['event'])->reverse();
 
@@ -297,9 +298,10 @@ class NflGame extends Model
             'short' => '2nd',
             'events' => $q2,
             'start_name' => 'Start of 2nd Quarter',
-            'end_name' => 'End of 2nd Quarter',
+            'end_name' => !empty($events['thirdquarter']) ? 'End of 2nd Quarter' : '-',
           ];
         }
+
         if (!empty($events['firstquarter'])) {
           $q1 = collect($events['firstquarter']['event'])->reverse();
 
@@ -313,7 +315,7 @@ class NflGame extends Model
             'name' => '1st Quarter',
             'short' => '1st',
             'start_name' => 'Start of 1st Quarter',
-            'end_name' => 'End of 1st Quarter',
+            'end_name' => !empty($events['secondquarter']) ? 'End of 1st Quarter' : '',
             'events' => $q1
           ];
         }
