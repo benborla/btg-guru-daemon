@@ -846,7 +846,7 @@ class NflScoresRepository
             $game['hometeam'] = $this->parseNflTeam($game['hometeam']);
             $game['game_date'] = $gameDate;
             $gameHasStarted = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->diffInMinutes(now()->setTimeZone('Australia/Sydney'));
-            $game['current_game'] = $gameHasStarted > 1 && ($game['status'] != 'Not Started' || $game['status'] != 'Final');
+            $game['current_game'] = $gameHasStarted > 1 && ($game['status'] != 'Not Started' && $game['status'] != 'Final' && $game['status'] != 'After Over Time');
             $game['game_status'] = $game['status'] == 'Not Started' ? $gameDate : $game['status'];
             $game['contest_id'] = $game['contestID'];
             $game['week'] = $storedData['week'];
