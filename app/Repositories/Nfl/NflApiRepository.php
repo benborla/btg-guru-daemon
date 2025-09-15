@@ -248,6 +248,7 @@ class NflApiRepository
         });
 
 
+        
         return $hasMatchToday;
     }
 

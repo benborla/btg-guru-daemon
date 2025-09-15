@@ -131,11 +131,12 @@ class NflController extends Controller
     public function scoreboard()
     {
         $games = [];
+        $chronological = request()->input('chronological', false);
 
         if ($this->repository->hasMatchToday()) {
-            $games = $this->repository->getScoreBoardDataFromApi();
+            $games = $this->repository->getScoreBoardDataFromApi($chronological);
         } else {
-            $games = $this->repository->getScoreBoardDataFromDb();
+            $games = $this->repository->getScoreBoardDataFromDb($chronological);
         }
 
         return response()->json($games);

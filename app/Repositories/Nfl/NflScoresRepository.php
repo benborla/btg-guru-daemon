@@ -817,12 +817,15 @@ class NflScoresRepository
         return $teams->where('ID', $teamId)->first();
     }
 
-    public function getScoreBoardDataFromDb()
+    public function getScoreBoardDataFromDb($chronological = false)
     {
         $games=  $this->apiRepository->getCurrentScheduledGames();
 
         return $games->map(function($game) {
 
+            if ($game['status'] == 'After Over Time') {
+                $game['status'] = '(OT)';
+            }
             $gameDate = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:ia');
             $game['awayteam'] = $this->parseNflTeam($game->awayteam);
             $game['hometeam'] = $this->parseNflTeam($game->hometeam);
@@ -834,20 +837,25 @@ class NflScoresRepository
         });
     }
 
-    public function getScoreBoardDataFromApi()
+    public function getScoreBoardDataFromApi($chronological = null)
     {
         $games = $this->apiRepository->getScoreBoardDataFromApi();
 
         $sorted =  $games->map(function($game) {
 
-            $storedData = NflGame::where('contest_id', $game['contestID'])->first();
             $gameDate = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('M j g:ia');
+            $status = $game['status'] == 'Not Started' ? $gameDate : $game['status'];
+            if ($status == 'After Over Time') {
+                $status = '(OT)';
+            }
+
+            $storedData = NflGame::where('contest_id', $game['contestID'])->first();
             $game['awayteam'] = $this->parseNflTeam($game['awayteam']);
             $game['hometeam'] = $this->parseNflTeam($game['hometeam']);
             $game['game_date'] = $gameDate;
             $gameHasStarted = Carbon::parse($game['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->diffInMinutes(now()->setTimeZone('Australia/Sydney'));
             $game['current_game'] = $gameHasStarted > 1 && ($game['status'] != 'Not Started' && $game['status'] != 'Final' && $game['status'] != 'After Over Time');
-            $game['game_status'] = $game['status'] == 'Not Started' ? $gameDate : $game['status'];
+            $game['game_status'] = $status;
             $game['contest_id'] = $game['contestID'];
             $game['week'] = $storedData['week'];
             // $game['current_game'] = $game['contestID'] == '204610';
@@ -857,7 +865,11 @@ class NflScoresRepository
             }
 
             return $game;
-        })->sortBy('game_date');
+        });
+
+        if ($chronological == 'true') {
+            return $sorted->sortBy('game_date')->values();
+        }
 
         return $sorted->values();
     }
