@@ -68,24 +68,47 @@ class NflController extends Controller
         $seasonTypeId = request()->input('seasonTypeId');
         $season = request()->input('season') ?? date('Y');
         $seasonTypes = $this->repository->getSeasonTypes();
+
         $weeksData = collect($seasonTypes)->map(function($item, $i) use($teamId, $seasonTypeId, $season){
             $item['weeks'] = $this->repository->getTeamSchedule($teamId, $season, $item['id']);
             $item['weeks_info'] = $this->repository->getWeeksInfo($item['id']);
             return $item;
         });
 
-
         $allTeams = $this->repository->getTeamsInfo($season);
         $teamInfo = $allTeams['AFC']->firstWhere('id', $teamId) ?? $allTeams['NFC']->firstWhere('id', $teamId);
         $teamStandings = $this->repository->getTeamStandings($teamId);
+        $teamLast5Form = $this->getTeamLast5Form($weeksData, $teamId);
 
         return response()->json([
             'teams' => $allTeams,
             'teamInfo' => $teamInfo ?? [],
             'seasonTypes' => $seasonTypes,
             'data' => $weeksData,
-            'standings' => $teamStandings ?? []
+            'standings' => $teamStandings ?? [],
+            'last5Form' => $teamLast5Form ?? []
         ]);
+    }
+
+    private function getTeamLast5Form($teamData, $teamId)
+    {
+        if ($teamData->count() == 0) {
+            return [];
+        }
+
+        $teamForms = $teamData->flatMap(function($item) use($teamId){
+            return $item['weeks']->filter(function($item) use($teamId){
+                if (isset($item['home_team_id']) || isset($item['away_team_id'])) {
+                    return $item['home_team_id'] == $teamId || $item['away_team_id'] == $teamId;
+                }
+            });
+        });
+
+        $last5Form = $teamForms->take(5)->map(function($a) use($teamId) {
+            return $a['home_team_id'] == $teamId ? $a['home_result'] : $a['away_result'];
+        });
+
+        return $last5Form;
     }
 
     public function teamStandings($season, $teamId) : JsonResponse
