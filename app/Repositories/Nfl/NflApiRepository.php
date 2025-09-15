@@ -239,7 +239,7 @@ class NflApiRepository
 
             return [
                 'todayMatch' => $hasTodayMatch,
-                'gameIsOver' => $match['status'] == 'Final'
+                'gameIsOver' => $match['status'] == 'Final' || $match['status'] == 'After Over Time'
             ];
         })->filter();
 
