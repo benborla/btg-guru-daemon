@@ -966,15 +966,14 @@ class NflScoresRepository
         $roosters = $this->apiRepository->fetchApiRosters($teamId);
 
         $roosters = collect($roosters)->flatMap(function($rooster) {
-            return collect($rooster['player'])->map(function($player) use($rooster) {
+            $players = isset($rooster['player']['name']) ? [$rooster['player']] : $rooster['player'];
+            return collect($players)->map(function($player) use($rooster) {
                 return [
                     ...$player,
                     'type' => $rooster['name'],
                 ];
             });
         });
-
-
         return $roosters;
     }
 
