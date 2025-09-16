@@ -475,23 +475,53 @@ class NflScoresRepository
             } else {
 
                 if ($i == 0) {
-                    $item['avg_for'] = 0;// $item['home_result_score'];
-                    $item['avg_agt'] = 0;// $item['away_result_score'];
-                    $item['avg_to'] =  0;// $item['avg_for'] + $item['avg_agt'];
+                    $item['avg_for'] = $item['home_result_score'] ?? 0;
+                    $item['avg_agt'] = $item['away_result_score'] ?? 0;
+                    $item['avg_to'] =  $item['avg_for'] + $item['avg_agt'];
                 } else {
 
-                    $teamPoints = $weeks->take($i+1);
-                    $avgFor =number_format(round($teamPoints->avg('home_result_score')),0);
-                    $avgAgt =number_format(round($teamPoints->avg('away_result_score')),0);
-                    // $item['avg_for'] = $avgFor;
-                    // $item['avg_agt'] = $avgAgt;
-                    // $item['avg_to'] =  $avgFor + $avgAgt;
-                    $item['avg_for'] = 0;
-                    $item['avg_agt'] = 0;
-                    $item['avg_to'] =  0;
+                    $teamPoints = $weeks->take($i+1)->filter(function($a) {
+                        return !isset($a['match_status']) && $a['status'] != 'Not Started';
+                    });
+
+                    if ($teamPoints->contains('contest_id', $item['contest_id'])) {
+                        // $teamPoints = $teamPoints->filter(function($a) use($teamId) {
+                        //     return $a['home_team_id'] == $teamId || $a['away_team_id'] == $teamId;
+                        // });
+
+                        $avgFor = $teamPoints->avg(function($a) {
+                            if ($a['isHome']) {
+                                return $a['home_result_score'];
+                            } else {
+                                return $a['away_result_score'];
+                            }
+                        });
+                        
+                        $avgAgt = $teamPoints->avg(function($a) {
+                            if (!$a['isHome']) {
+                                return $a['home_result_score'];
+                            } else {
+                                return $a['away_result_score'];
+                            }
+                        });
+
+
+                        $avgFor =number_format(round($avgFor),0);
+                        $avgAgt =number_format(round($avgAgt),0);
+
+                        $item['avg_for'] = $avgFor;
+                        $item['avg_agt'] = $avgAgt;
+                        $item['avg_to'] =  $avgFor + $avgAgt;
+                    } else {
+                        $item['avg_for'] = '0';
+                        $item['avg_agt'] = '0';
+                        $item['avg_to'] = '0';
+                    }
+
                 }
 
             }
+
 
             return $item;
         });
