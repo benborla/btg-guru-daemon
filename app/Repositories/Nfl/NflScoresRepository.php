@@ -1007,5 +1007,45 @@ class NflScoresRepository
         return $roosters;
     }
 
+    public function getTeamStandingsDivision($teamId)
+    {
+        $standings = $this->apiRepository->fetchApiStandings();
+
+        if (empty($standings) || empty($standings['standings']['category']['league'])) {
+            return [];
+        }
+        $standings = collect($standings['standings']['category']['league'])->map(function($league) use($teamId) {
+
+            $division = collect($league['division'])->map(function($division) use($teamId) {
+                $hasTeam = collect($division['team'] ?? [])->contains('id', $teamId);
+
+                if ($hasTeam) {
+                    return $division;
+                }
+
+                return null;
+            })->filter()->first();
+
+            return $division;
+
+        })->filter()->first();
+
+
+        if (empty($standings)) {
+            return [];
+        }
+
+        // image team name
+        $standings['team'] = collect($standings['team'])->map(function($team) use($teamId) {
+            return [
+                ...$team,
+                'image_name' => str_replace(' ', '_', $team['name']),
+                'isCurrentTeam' => $team['id'] == $teamId,
+            ];
+        });
+
+        return $standings;
+    }
+
 }
 

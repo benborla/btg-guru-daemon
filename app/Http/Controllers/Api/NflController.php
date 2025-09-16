@@ -86,6 +86,7 @@ class NflController extends Controller
             'seasonTypes' => $seasonTypes,
             'data' => $weeksData,
             'standings' => $teamStandings ?? [],
+            'divisionStandings' => $this->repository->getTeamStandingsDivision($teamId),
             'last5Form' => $teamLast5Form ?? []
         ]);
     }
