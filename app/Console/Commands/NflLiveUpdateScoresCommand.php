@@ -1,0 +1,104 @@
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use App\Models\NflGame;
+use Carbon\Carbon;
+use App\Repositories\Nfl\NflApiRepository;
+
+class NflLiveUpdateScoresCommand extends Command
+{
+    /**
+     * The name and signature of the console command.
+     */
+    protected $signature = 'nfl:live-update-scores
+                            {--test : Test mode}';
+
+    /**
+     * The console command description.
+     */
+    protected $description = 'Auto update scores when there is a live game going on';
+
+    /**
+     * API configuration
+     */
+    //http://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-standings
+    private const API_BASE_URL = 'goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-standings';
+    private const API_NFL_SCORES_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-scores?json=1";
+    private const CACHE_PREFIX = 'nfl-standings';
+    private const DEFAULT_CACHE_TTL = 86400; // 1 day in seconds
+    private const HAS_MATCH_URL = '/api/v1/nfl/has-match-today'; // 1 day in seconds
+
+    /**
+     * Execute the console command.
+     */
+    public function handle()
+    {
+        if ($this->hasMatchToday()) {
+            $this->info('🏈 Has match today');
+            $this->updateScores();
+        } else {
+            $this->info('No match today');
+        }
+
+    }
+
+    public function hasMatchToday()
+    {
+        if ($this->option('test')) {
+            return true;
+        }
+
+        $response = Http::get(env('APP_URL') . self::HAS_MATCH_URL);
+        $status = $response->json();
+
+        return $status['status'] ?? false;
+    }
+
+    public function fetchApiScores()
+    {
+        $cacheKey = "nfl_api_scores_live";
+
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $this->info("Fetching LIVE API scores...");
+        $response = Http::get(self::API_NFL_SCORES_URL);
+
+        Cache::put($cacheKey, $response->json(), now()->addSeconds(10));
+
+        return $response->json();
+    }
+
+    public function updateScores()
+    {
+        $scores = $this->fetchApiScores();
+
+        $games = collect($scores['scores']['category']['match'] ?? []);
+
+        if ($games->count() == 0) {
+            $this->info("No games found");
+            return;
+        }
+
+        $this->info("Updating scores...");
+        $games->map(function($game){
+
+            $this->info( date('Y-m-d H:i:s') ."Updating game: " . $game['contestID']);
+            // NflGame::where('contest_id', $game['contestID'])->first()->delete();
+            NflGame::updateOrCreate(
+                ['contest_id' => $game['contestID']],
+                $game
+            );
+        });
+
+        $this->info("Done updating scores...");
+    }
+
+
+}
