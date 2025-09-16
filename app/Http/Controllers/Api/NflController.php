@@ -75,6 +75,7 @@ class NflController extends Controller
             return $item;
         });
 
+        $customStandings = $this->customTeamStandings($weeksData, $teamId);
         $allTeams = $this->repository->getTeamsInfo($season);
         $teamInfo = $allTeams['AFC']->firstWhere('id', $teamId) ?? $allTeams['NFC']->firstWhere('id', $teamId);
         $teamStandings = $this->repository->getTeamStandings($teamId);
@@ -87,8 +88,64 @@ class NflController extends Controller
             'data' => $weeksData,
             'standings' => $teamStandings ?? [],
             'divisionStandings' => $this->repository->getTeamStandingsDivision($teamId),
-            'last5Form' => $teamLast5Form ?? []
+            'last5Form' => $teamLast5Form ?? [],
+            'customStandings' => $customStandings
         ]);
+    }
+
+    private function customTeamStandings($data, $teamId)
+    {
+        $allData = $data->flatMap(function($item) {
+            return $item['weeks'];
+        });
+
+
+        $allTeamPassingYardsFor = $allData->sum(function($item) use($teamId) {
+            if (isset($item['match_status'])) {
+                return 0;
+            }
+
+            if ($item['isHome']) {
+
+                if ($item['team_stats']) {
+                    return $item['team_stats']['hometeam']['passing']['total'] ?? 0;
+                } else {
+                    return 0;
+                }
+            } else {
+                if ($item['team_stats']) {
+                    return $item['team_stats']['awayteam']['passing']['total'] ?? 0;
+                } else {
+                    return 0;
+                }
+            }
+        });
+
+        $allTeamPassingYardsAgt = $allData->sum(function($item) use($teamId) {
+            if (isset($item['match_status'])) {
+                return 0;
+            }
+
+            if (!$item['isHome']) {
+                if ($item['team_stats']) {
+                    return $item['team_stats']['hometeam']['passing']['total'] ?? 0;
+                } else {
+                    return 0;
+                }
+            } else {
+                if ($item['team_stats']) {
+                    return $item['team_stats']['awayteam']['passing']['total'] ?? 0;
+                } else {
+                    return 0;
+                }
+            }
+        });
+            
+
+        return [
+            'passingsFor' => $allTeamPassingYardsFor,
+            'passingsAgt' => $allTeamPassingYardsAgt
+        ];
     }
 
     private function getTeamLast5Form($teamData, $teamId)
