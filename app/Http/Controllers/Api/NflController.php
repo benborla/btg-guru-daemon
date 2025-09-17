@@ -100,51 +100,45 @@ class NflController extends Controller
         });
 
 
-        $allTeamPassingYardsFor = $allData->sum(function($item) use($teamId) {
+        $teamCustomStats = $allData->map(function($item) use($teamId) {
             if (isset($item['match_status'])) {
                 return 0;
             }
 
-            if ($item['isHome']) {
+            if ($item['season_type_id'] == 1) return 0;
 
-                if ($item['team_stats']) {
-                    return $item['team_stats']['hometeam']['passing']['total'] ?? 0;
-                } else {
-                    return 0;
-                }
-            } else {
-                if ($item['team_stats']) {
-                    return $item['team_stats']['awayteam']['passing']['total'] ?? 0;
-                } else {
-                    return 0;
-                }
-            }
-        });
 
-        $allTeamPassingYardsAgt = $allData->sum(function($item) use($teamId) {
-            if (isset($item['match_status'])) {
-                return 0;
-            }
+            if ($item['team_stats']) {
+                if ($item['isHome']) {
+                    return [
+                        'passingfor' => $item['team_stats']['hometeam']['passing']['total'] ?? 0,
+                        'passingagt' => $item['team_stats']['awayteam']['passing']['total'] ?? 0,
+                        'rushingfor' => $item['team_stats']['hometeam']['rushings']['total'] ?? 0,
+                        'rushingagt' => $item['team_stats']['awayteam']['rushings']['total'] ?? 0,
+                    ];
+                } else {
+                    return [
+                        'passingfor' => $item['team_stats']['awayteam']['passing']['total'] ?? 0,
+                        'passingagt' => $item['team_stats']['hometeam']['passing']['total'] ?? 0,
+                        'rushingfor' => $item['team_stats']['awayteam']['rushings']['total'] ?? 0,
+                        'rushingagt' => $item['team_stats']['hometeam']['rushings']['total'] ?? 0,
+                    ];
+                }
 
-            if (!$item['isHome']) {
-                if ($item['team_stats']) {
-                    return $item['team_stats']['hometeam']['passing']['total'] ?? 0;
-                } else {
-                    return 0;
-                }
-            } else {
-                if ($item['team_stats']) {
-                    return $item['team_stats']['awayteam']['passing']['total'] ?? 0;
-                } else {
-                    return 0;
-                }
             }
-        });
-            
+        })->filter();
+
+        $passingFor = $teamCustomStats->sum('passingfor');
+        $passingAgt = $teamCustomStats->sum('passingagt');
+        $rushingFor = $teamCustomStats->sum('rushingfor');
+        $rushingAgt = $teamCustomStats->sum('rushingagt');
+
 
         return [
-            'passingsFor' => $allTeamPassingYardsFor,
-            'passingsAgt' => $allTeamPassingYardsAgt
+            'passingsFor' => $passingFor,
+            'passingsAgt' => $passingAgt,
+            'rushingsFor' => $rushingFor,
+            'rushingsAgt' => $rushingAgt
         ];
     }
 
