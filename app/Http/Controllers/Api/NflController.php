@@ -128,18 +128,7 @@ class NflController extends Controller
             }
         })->filter()->take(-5);
 
-        $passingFor = $teamCustomStats->sum('passingfor');
-        $passingAgt = $teamCustomStats->sum('passingagt');
-        $rushingFor = $teamCustomStats->sum('rushingfor');
-        $rushingAgt = $teamCustomStats->sum('rushingagt');
-
-
-        return [
-            'passingsFor' => $passingFor,
-            'passingsAgt' => $passingAgt,
-            'rushingsFor' => $rushingFor,
-            'rushingsAgt' => $rushingAgt
-        ];
+        return $teamCustomStats;
     }
 
     private function getTeamLast5Form($teamData, $teamId)
