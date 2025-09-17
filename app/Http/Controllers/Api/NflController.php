@@ -75,6 +75,7 @@ class NflController extends Controller
             return $item;
         });
 
+        $customStandings = $this->customTeamStandings($weeksData, $teamId);
         $allTeams = $this->repository->getTeamsInfo($season);
         $teamInfo = $allTeams['AFC']->firstWhere('id', $teamId) ?? $allTeams['NFC']->firstWhere('id', $teamId);
         $teamStandings = $this->repository->getTeamStandings($teamId);
@@ -87,8 +88,47 @@ class NflController extends Controller
             'data' => $weeksData,
             'standings' => $teamStandings ?? [],
             'divisionStandings' => $this->repository->getTeamStandingsDivision($teamId),
-            'last5Form' => $teamLast5Form ?? []
+            'last5Form' => $teamLast5Form ?? [],
+            'customStandings' => $customStandings
         ]);
+    }
+
+    private function customTeamStandings($data, $teamId)
+    {
+        $allData = $data->flatMap(function($item) {
+            return $item['weeks'];
+        });
+
+
+        $teamCustomStats = $allData->map(function($item) use($teamId) {
+            if (isset($item['match_status'])) {
+                return 0;
+            }
+
+            if ($item['season_type_id'] == 1) return 0;
+
+
+            if ($item['team_stats']) {
+                if ($item['isHome']) {
+                    return [
+                        'passingfor' => $item['team_stats']['hometeam']['passing']['total'] ?? 0,
+                        'passingagt' => $item['team_stats']['awayteam']['passing']['total'] ?? 0,
+                        'rushingfor' => $item['team_stats']['hometeam']['rushings']['total'] ?? 0,
+                        'rushingagt' => $item['team_stats']['awayteam']['rushings']['total'] ?? 0,
+                    ];
+                } else {
+                    return [
+                        'passingfor' => $item['team_stats']['awayteam']['passing']['total'] ?? 0,
+                        'passingagt' => $item['team_stats']['hometeam']['passing']['total'] ?? 0,
+                        'rushingfor' => $item['team_stats']['awayteam']['rushings']['total'] ?? 0,
+                        'rushingagt' => $item['team_stats']['hometeam']['rushings']['total'] ?? 0,
+                    ];
+                }
+
+            }
+        })->filter()->take(-5)->reverse();
+
+        return $teamCustomStats;
     }
 
     private function getTeamLast5Form($teamData, $teamId)
