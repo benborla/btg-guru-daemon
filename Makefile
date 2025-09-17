@@ -41,6 +41,22 @@ api-afl-boradcast:
 migrate:
 	php artisan migrate
 
+nfl-live:
+	php artisan nfl:live-update-scores > storage/logs/nfl_live_update.log 2>&1
+nfl-update-live-scores:
+	php artisan nfl:live-update-scores
+
+test-nfl-reset-current-game-scores:
+	php artisan nfl:current-game-scores-reset-test
+
+docker-nfl-update-live-scores:
+	docker compose exec app php artisan nfl:live-update-scores 
+docker-nfl-update-live-scores-test:
+	docker compose exec app php artisan nfl:live-update-scores --test
+docker-test-nfl-reset-current-game-scores:
+	docker compose exec app php artisan nfl:current-game-scores-reset-test 
+docker-nfl-live:
+	docker compose exec app php artisan nfl:live-update-scores > storage/logs/nfl_live_update.log 2>&1
 docker-afl-schedules:
 	docker compose exec app php artisan api:afl:schedules
 
@@ -90,3 +106,10 @@ docker-migrate:
 
 docker-rollback:
 	docker compose exec app php artisan migrate:rollback
+
+
+start:
+	docker compose -f docker-compose.dev-tools.yml up -d
+
+clear-recurring-log:
+	echo "" > storage/logs/recurring.log
