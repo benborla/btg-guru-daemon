@@ -32,6 +32,7 @@ class NflLiveUpdateScoresCommand extends Command
     private const CACHE_PREFIX = 'nfl-standings';
     private const DEFAULT_CACHE_TTL = 86400; // 1 day in seconds
     private const HAS_MATCH_URL = '/api/v1/nfl/has-match-today'; // 1 day in seconds
+    private const API_NFL_PLAYBYPLAY_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-playbyplay-scores?json=1";
 
     /**
      * Execute the console command.
@@ -41,10 +42,8 @@ class NflLiveUpdateScoresCommand extends Command
         if ($this->hasMatchToday()) {
             $this->info('🏈 Has match today');
             $this->updateScores();
-        } else {
-            $this->info('No match today');
+            $this->fetchApiPlayByPlay();
         }
-
     }
 
     public function hasMatchToday()
@@ -73,6 +72,19 @@ class NflLiveUpdateScoresCommand extends Command
         Cache::put($cacheKey, $response->json(), now()->addSeconds(10));
 
         return $response->json();
+    }
+
+    public function fetchApiPlayByPlay()
+    {
+        $cacheKey = "nfl_api_playbyplay_live";
+
+        $this->info("Fetching LIVE API playbyplay...");
+        $response = Http::get(self::API_NFL_PLAYBYPLAY_URL);
+        $matches = $response['scores']['category']['match'];
+
+        Cache::put($cacheKey, $matches, now()->addMinutes(10));
+
+        return $matches;
     }
 
     public function updateScores()
