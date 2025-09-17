@@ -82,7 +82,7 @@ class NflLiveUpdateScoresCommand extends Command
         $response = Http::get(self::API_NFL_PLAYBYPLAY_URL);
         $matches = $response['scores']['category']['match'];
 
-        Cache::put($cacheKey, $matches, now()->addMinutes(10));
+        Cache::put($cacheKey, $matches, now()->addDays(1));
 
         return $matches;
     }

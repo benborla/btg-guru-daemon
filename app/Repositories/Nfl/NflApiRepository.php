@@ -247,8 +247,6 @@ class NflApiRepository
             return $item['todayMatch'] == true && $item['gameIsOver'] == false;
         });
 
-
-        
         return $hasMatchToday;
     }
 
@@ -259,12 +257,39 @@ class NflApiRepository
 
     public function getPlayByPlayScores($contestId)
     {
-        $playByPlay = NflGamePlaybyplayScores::where('contest_id', $contestId)->first();
+        $cacheKey = "nfl_api_playbyplay_live";
+        $playByPlay = [];
 
-        if (empty($playByPlay)) {
-            $this->fetchApiPlayByPlay();
-            // retrieve
-            $playByPlay = NflGamePlaybyplayScores::where('contest_id', $contestId)->first();
+        if (Cache::has($cacheKey)) {
+            $playByPlay =  Cache::get($cacheKey);
+        }
+
+        // for testing
+        $testData = NflGamePlaybyplayScores::where('contest_id', '204639')->first();
+        $testData = $testData->response;
+
+        if (!empty($playByPlay)) {
+            $data = collect($playByPlay)->where('contestID', $contestId)->first();
+            // $data = $testData;
+            $playByPlay = $data['playbyplay'] ?? [];
+
+            if (empty($playByPlay)) {
+                return [];
+            }
+
+            $drives = $playByPlay['drive'] ?? [];
+
+            if (empty($drives)) {
+                return [];
+            }
+
+            $drives = collect($drives)->first();
+            $drives['play'] = collect($drives['play'])->first();
+            $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
+            $drives['image_name'] = str_replace(' ', '_', $drives['name']) ?? "";
+            $drives['current_drive'] = $drives['team'] == 'hometeam' ? 'home' : 'away';
+
+            $playByPlay = $drives;
         }
 
         return $playByPlay;
