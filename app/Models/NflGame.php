@@ -101,8 +101,6 @@ class NflGame extends Model
         'spreadbox',
         'score_page_time',
         'current_game_status',
-       
-        
     ];
 
     public function getCurrentGameStatusAttribute()
@@ -751,12 +749,12 @@ public function getHomePassingStatsAttribute()
 
     public function getAwayTeamShortNameAttribute()
     {
-        return $this->getNflTeamAbbrieviation($this->awayteam['id'])['Abbreviation'];
+        return $this->getNflTeamAbbrieviation($this->awayteam['id'])['Abbreviation'] ?? '';
     }
 
     public function getHomeTeamShortNameAttribute()
     {
-        return $this->getNflTeamAbbrieviation($this->hometeam['id'])['Abbreviation'];
+        return $this->getNflTeamAbbrieviation($this->hometeam['id'])['Abbreviation'] ?? '';
     }
 
     public function getAwayTeamNameAttribute()

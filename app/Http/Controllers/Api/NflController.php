@@ -235,4 +235,11 @@ class NflController extends Controller
 
         return response()->json($roosters);
     }
+
+    public function getRankings($season)
+    {
+        return response()->json(
+            $this->repository->getRankings($season)
+        );
+    }
 }

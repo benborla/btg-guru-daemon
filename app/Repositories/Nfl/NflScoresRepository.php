@@ -13,6 +13,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Repositories\Nfl\NflApiRepository;
+use Illuminate\Support\Number;
 
 class NflScoresRepository
 {
@@ -1047,5 +1048,100 @@ class NflScoresRepository
         return $standings;
     }
 
+    public function getRankings($season)
+    {
+        $allTeams = $this->getTeamsInfo($season);
+
+        if (empty($allTeams)) {
+            return [];
+        }
+
+        $allTeams = $allTeams->flatMap(function($team) {
+            return $team;
+        });
+
+
+        $scores = NflGame::where('season', $season)
+            ->where('season_type_id', '!=', 1)
+            ->get();
+
+        $teamScores = $allTeams->map(function($team) use($scores) {
+            $teamHome = $scores->where('home_team_id', $team['id'])->map(function($score) {
+                $score['isHome'] = true;
+                return $score;
+            });
+            $teamAway = $scores->where('away_team_id', $team['id'])->map(function($score) {
+                $score['isHome'] = false;
+                return $score;
+            });
+
+            $teamHome = $teamHome->filter(function($score) {
+                return $score->status == 'Final' || $score->status == 'After Over Time';
+            });
+
+            $teamAway = $teamAway->filter(function($score) {
+                return $score->status == 'Final' || $score->status == 'After Over Time';
+            });
+
+            $data = $teamHome->merge($teamAway);
+            $teamAvgFor = $this->computeTeamAvgForRanking($data->take(-5));
+
+            return [
+                ...$team,
+                'avg_for' => $teamAvgFor['for'],
+                'avg_agt' => $teamAvgFor['agt']
+            ];
+        });
+
+        $withRankings = $teamScores->map(function($team) use($teamScores) {
+            $sorted = $teamScores->sortBy(['avg_for', 'asc']);
+            $id = $team['id'];
+            $rank = $sorted->where('id', $team['id'])->keys()->first();
+
+
+            $team['avg_for_rank'] = Number::ordinal($rank + 1);
+
+            return $team;
+        });
+
+        return $withRankings;
+
+        $scores = $scores->map(function($score) {
+            $teamStats = $score->team_stats ?? [];
+            $awayTeam = $score->awayteam ?? [];
+            $homeTeam = $score->hometeam ?? [];
+
+            return [
+                'home_team_id' => $score->home_team_id,
+                'away_team_id' => $score->away_team_id,
+                'away_team_score' => $awayTeam['totalscore'] ?? 0,
+                'home_team_score' => $homeTeam['totalscore'] ?? 0,
+            ];
+        });
+
+        $scores = "";
+    }
+
+    private function computeTeamAvgForRanking($teamScores)
+    {
+        $avg = $teamScores->map(function($score) {
+            if ($score['isHome']) {
+                return [
+                    'for' => $score['home_score'],
+                    'agt' => $score['away_score']
+                ];
+            }
+
+            return [
+                'for' => $score['away_score'],
+                'agt' => $score['home_score']
+            ];
+        });
+
+        return [
+            'for' => $avg->avg('for'),
+            'agt' => $avg->avg('agt')
+        ];
+    }
 }
 
