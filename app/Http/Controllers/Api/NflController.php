@@ -126,7 +126,7 @@ class NflController extends Controller
                 }
 
             }
-        })->filter()->take(-5);
+        })->filter()->take(-5)->reverse();
 
         return $teamCustomStats;
     }
