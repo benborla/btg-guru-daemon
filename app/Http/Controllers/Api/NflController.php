@@ -126,7 +126,7 @@ class NflController extends Controller
                 }
 
             }
-        })->filter();
+        })->filter()->take(-5);
 
         $passingFor = $teamCustomStats->sum('passingfor');
         $passingAgt = $teamCustomStats->sum('passingagt');
