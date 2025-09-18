@@ -247,6 +247,7 @@ class NflApiRepository
             return $item['todayMatch'] == true && $item['gameIsOver'] == false;
         });
 
+
         return $hasMatchToday;
     }
 
@@ -265,8 +266,8 @@ class NflApiRepository
         }
 
         // for testing
-        $testData = NflGamePlaybyplayScores::where('contest_id', '204639')->first();
-        $testData = $testData->response;
+        // $testData = NflGamePlaybyplayScores::where('contest_id', '204639')->first();
+        // $testData = $testData->response;
 
         if (!empty($playByPlay)) {
             $data = collect($playByPlay)->where('contestID', $contestId)->first();
@@ -285,9 +286,76 @@ class NflApiRepository
 
             $drives = collect($drives)->first();
             $drives['play'] = collect($drives['play'])->first();
-            $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
+            // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
             $drives['image_name'] = str_replace(' ', '_', $drives['name']) ?? "";
-            $drives['current_drive'] = $drives['team'] == 'hometeam' ? 'home' : 'away';
+            
+            // $drives['current_drive'] = $drives['team'] == 'hometeam' ? 'home' : 'away';
+            // $drives['current_drive'] = "home";
+            // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
+            // $drives['image_name'] = 'Cleveland_Browns';
+
+            $toHomeFirstHalf = 0;
+            $toHomeSecondHalf = 0;
+            $toAwayFirstHalf = 0;
+            $toAwaySecondHalf = 0;
+            $firstHalfQuarters = [
+                "1st", "2nd"
+            ];
+            $secondHalfQuarters = [
+                "3rd", "4th"
+            ];
+
+            foreach ($playByPlay['drive'] as $drive){
+                $plays = $drive['play'] ?? [];
+
+                foreach ($plays as $play){
+                    if ($play['type'] == 'TO' && $play['possessionTeam'] == 'hometeam') {
+
+                        $quarter = explode("-", $play['minute'])[1] ?? null;
+
+                        if ($quarter) {
+                            $quarter = str_replace(" ", "", $quarter);
+
+                            if (in_array($quarter, $firstHalfQuarters)) {
+                                $toHomeFirstHalf++;
+                            }
+
+                            if (in_array($quarter, $secondHalfQuarters)) {
+                                $toHomeSecondHalf++;
+                            }
+                        }
+                    }
+                
+                    if ($play['type'] == 'TO' && $play['possessionTeam'] == 'awayteam') {
+                        $quarter = explode("-", $play['minute'])[1] ?? null;
+
+                        if ($quarter) {
+                            $quarter = str_replace(" ", "", $quarter);
+
+                            if (in_array($quarter, $firstHalfQuarters)) {
+                                $toAwayFirstHalf++;
+                            }
+
+                            if (in_array($quarter, $secondHalfQuarters)) {
+                                $toAwaySecondHalf++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            $to = [
+                'home' => [
+                    'firstHalf' => $toHomeFirstHalf,
+                    'secondHalf' => $toHomeSecondHalf
+                ],
+                'away' => [
+                    'firstHalf' => $toAwayFirstHalf,
+                    'secondHalf' => $toAwaySecondHalf
+                ]
+            ];
+
+            $drives['to'] = $to;
 
             $playByPlay = $drives;
         }
