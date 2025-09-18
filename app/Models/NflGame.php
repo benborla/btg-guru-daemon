@@ -101,9 +101,46 @@ class NflGame extends Model
         'spreadbox',
         'score_page_time',
         'current_game_status',
-       
+        'current_quarter',
         
     ];
+
+    public function getCurrentQuarterAttribute()
+    {
+       $events = $this->events ?? [];
+
+       if (empty($events)) {
+         return null;
+       }
+
+       $firstQuarter = $events['firstquarter'] ?? [];
+       $secondQuarter = $events['secondquarter'] ?? [];
+       $thirdQuarter = $events['thirdquarter'] ?? [];
+       $fourthQuarter = $events['fourthquarter'] ?? [];
+       $overtime = $events['overtime'] ?? [];
+
+       if (!empty($firstQuarter)) {
+         return '1st';
+       }
+
+       if (!empty($secondQuarter)) {
+         return '2nd';
+       }
+
+       if (!empty($thirdQuarter)) {
+         return '3rd';
+       }
+
+       if (!empty($fourthQuarter)) {
+         return '4th';
+       }
+
+       if (!empty($overtime)) {
+         return 'OT';
+       }
+
+       return null;
+    }
 
     public function getCurrentGameStatusAttribute()
     {

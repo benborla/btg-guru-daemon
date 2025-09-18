@@ -239,6 +239,7 @@ class NflApiRepository
 
             return [
                 'todayMatch' => $hasTodayMatch,
+                'contestId' =>  $hasTodayMatch ? $match->contest_id : null,
                 'gameIsOver' => $match['status'] == 'Final' || $match['status'] == 'After Over Time'
             ];
         })->filter();
@@ -248,7 +249,10 @@ class NflApiRepository
         });
 
 
-        return $hasMatchToday;
+        return [
+            'status' => $hasMatchToday, 
+            'contestIds' => $matchesStatus->pluck('contestId')->filter()->toArray()
+        ];
     }
 
     public function getCurrentWeek()
