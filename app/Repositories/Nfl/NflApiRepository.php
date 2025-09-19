@@ -337,7 +337,7 @@ class NflApiRepository
                         }
                     }
                 
-                    if ($play['type'] == 'TO' && $possessionTeam =='awayTeam'){
+                    if ($play['type'] == 'TO' && $possessionTeam =='awayteam'){
                         $quarter = explode("-", $play['minute'])[1] ?? null;
 
                         if ($quarter) {
