@@ -288,12 +288,16 @@ class NflApiRepository
                 return [];
             }
 
+	    if (isset($drives['id'])) {
+	    	$drives = [$drives];
+	    }
+
             $drives = collect($drives)->first();
-            $drives['play'] = collect($drives['play'])->first();
+            $drives['play'] = collect($drives['play'])->reverse()->first();
             // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
             $drives['image_name'] = str_replace(' ', '_', $drives['name']) ?? "";
             
-            // $drives['current_drive'] = $drives['team'] == 'hometeam' ? 'home' : 'away';
+            $drives['current_drive'] = $drives['team'] == 'hometeam' ? 'home' : 'away';
             // $drives['current_drive'] = "home";
             // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
             // $drives['image_name'] = 'Cleveland_Browns';
@@ -313,7 +317,10 @@ class NflApiRepository
                 $plays = $drive['play'] ?? [];
 
                 foreach ($plays as $play){
-                    if ($play['type'] == 'TO' && $play['possessionTeam'] == 'hometeam') {
+
+			$possessionTeam = $play['possession_team'] ?? $play['possessionTeam'];
+
+			if ($play['type'] == 'TO' && $possessionTeam == 'hometeam'){
 
                         $quarter = explode("-", $play['minute'])[1] ?? null;
 
@@ -330,7 +337,7 @@ class NflApiRepository
                         }
                     }
                 
-                    if ($play['type'] == 'TO' && $play['possessionTeam'] == 'awayteam') {
+                    if ($play['type'] == 'TO' && $possessionTeam =='awayTeam'){
                         $quarter = explode("-", $play['minute'])[1] ?? null;
 
                         if ($quarter) {
