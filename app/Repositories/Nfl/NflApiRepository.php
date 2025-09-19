@@ -294,8 +294,29 @@ class NflApiRepository
 
             $drives = collect($drives)->first();
             $drives['play'] = collect($drives['play'])->reverse()->first();
+            //CLOCK - down start - description - down end
             // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
             $drives['image_name'] = str_replace(' ', '_', $drives['name']) ?? "";
+            $fullDesc = "";
+
+            if (isset($drives['play']['minute'])) {
+                $fullDesc .= "<span class='fw-bold'>" . $drives['play']['minute'] . "</span>"; 
+            }
+
+            if (isset($drives['play']['down_start'])) {
+                $fullDesc .= " - " . $drives['play']['down_start'];
+            }
+
+            if (isset($drives['play']['description'])) {
+                $fullDesc .= " - " . $drives['play']['description']; 
+            }
+
+            if (isset($drives['play']['down_end'])) {
+                $fullDesc .= " - " . $drives['play']['down_end']; 
+            }
+
+            $drives['play']['full_description'] = $fullDesc;
+
             
             $drives['current_drive'] = $drives['team'] == 'hometeam' ? 'home' : 'away';
             // $drives['current_drive'] = "home";
