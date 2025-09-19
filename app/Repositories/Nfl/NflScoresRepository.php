@@ -1084,63 +1084,167 @@ class NflScoresRepository
             });
 
             $data = $teamHome->merge($teamAway);
-            $teamAvgFor = $this->computeTeamAvgForRanking($data->take(-5));
+            $teamAvgFor = $this->teamAvgStats($data->take(-5));
+            $allMatchesDataComputation = $this->teamAvgStats($data);
 
             return [
                 ...$team,
                 'avg_for' => $teamAvgFor['for'],
-                'avg_agt' => $teamAvgFor['agt']
+                'avg_passing' => $allMatchesDataComputation['passing'],
+                'avg_rushings' => $allMatchesDataComputation['rushings'],
+                'penalties' => $allMatchesDataComputation['penalties'],
+                'penalties_yrds' => $allMatchesDataComputation['penalties_yrds'],
+                'redzone_percent' => $allMatchesDataComputation['redzone_percent'],
+                'redzone_cttd' => $allMatchesDataComputation['redzone_cttd'],
+                'redzone_attempts' => $allMatchesDataComputation['redzone_attempts'],
+
             ];
         });
 
+
         $withRankings = $teamScores->map(function($team) use($teamScores) {
-            $sorted = $teamScores->sortBy(['avg_for', 'asc']);
             $id = $team['id'];
-            $rank = $sorted->where('id', $team['id'])->keys()->first();
 
+            $avgRankFor = $teamScores->sortBy([
+                ['avg_for', 'desc']
+            ]);
+            $avgRankPassing = $teamScores->sortBy([
+                ['avg_passing', 'desc']
+            ]);
 
-            $team['avg_for_rank'] = Number::ordinal($rank + 1);
+            $avgRankRushings = $teamScores->sortBy([
+                ['avg_rushings', 'desc']
+            ]);
+
+            $avgPenaltyRank = $teamScores->sortBy([
+                ['penalties_yrds', 'desc']
+            ]);
+
+            $redZoneRank = $teamScores->sortBy([
+                ['redzone_percent', 'desc']
+            ]);
+
+            $avgForRankFor = $this->getTeamRank($avgRankFor, $id);
+            $avgPassingRank = $this->getTeamRank($avgRankPassing, $id);
+            $avgRushingsRank = $this->getTeamRank($avgRankRushings, $id);
+            $avgPenaltyRank = $this->getTeamRank($avgPenaltyRank, $id);
+            $redZoneRank = $this->getTeamRank($redZoneRank, $id);
+
+            $team['avg_for_rank'] = Number::ordinal($avgForRankFor + 1);
+            $team['avg_passing_rank'] = Number::ordinal($avgPassingRank + 1);
+            $team['avg_rushings_rank'] = Number::ordinal($avgRushingsRank + 1);
+            $team['penalty_rank'] = Number::ordinal($avgPenaltyRank + 1);
+            $team['redzone_rank'] = Number::ordinal($redZoneRank + 1);
 
             return $team;
         });
 
+
         return $withRankings;
-
-        $scores = $scores->map(function($score) {
-            $teamStats = $score->team_stats ?? [];
-            $awayTeam = $score->awayteam ?? [];
-            $homeTeam = $score->hometeam ?? [];
-
-            return [
-                'home_team_id' => $score->home_team_id,
-                'away_team_id' => $score->away_team_id,
-                'away_team_score' => $awayTeam['totalscore'] ?? 0,
-                'home_team_score' => $homeTeam['totalscore'] ?? 0,
-            ];
-        });
-
-        $scores = "";
     }
 
-    private function computeTeamAvgForRanking($teamScores)
+    public function getCurrentTeamRank($season, $teamId)
+    {
+        $rankings = $this->getRankings($season);
+
+        if (empty($rankings)) {
+            return [];
+        }
+
+        $rankings = $rankings->where('id', $teamId)->first();
+
+        return $rankings;
+    }
+
+    private function getTeamRank($teamScores, $teamId)
+    {
+        $avgForRankFor = $teamScores->values()->search(function($team) use ($teamId) {
+            return $team['id'] == $teamId;
+        });
+
+        return $avgForRankFor;
+    }
+
+    private function teamAvgStats($teamScores)
     {
         $avg = $teamScores->map(function($score) {
+            $homeTeamStats = $score->team_stats['hometeam'] ?? [];
+            $awayTeamStats = $score->team_stats['awayteam'] ?? [];
+
+            $hPenalties = $homeTeamStats['penalties']['total'] ?? 0;
+            $aPenalties = $awayTeamStats['penalties']['total'] ?? 0;
+            $hRedZone = $homeTeamStats['red_zone']['made_att'] ?? 0;
+            $aRedZone = $awayTeamStats['red_zone']['made_att'] ?? 0;
+            
+
+            $hPenalties = explode('-', $hPenalties);
+            $hPenaltyValue = (int) $hPenalties[0] ?? 0;
+            $hPenaltyYards = (int) $hPenalties[1] ?? 0;
+
+            $aPenalties = explode('-', $aPenalties);
+            $aPenaltyValue = (int) $aPenalties[0] ?? 0;
+            $aPenaltyYards = (int) $aPenalties[1] ?? 0;
+
+            $hRedZone = explode('-', $hRedZone);
+            $hCttd = 0;
+            $hAttempts = 0;
+
+            if (count($hRedZone) == 2) {
+                $hCttd = (int) $hRedZone[0] ?? 0;
+                $hAttempts = (int) $hRedZone[1] ?? 0;
+            }
+
+            $aRedZone = explode('-', $aRedZone);
+            $aCttd = 0;
+            $aAttempts = 0;
+
+            if (count($aRedZone) == 2) {
+                $aCttd = (int) $aRedZone[0] ?? 0;
+                $aAttempts = (int) $aRedZone[1] ?? 0;
+            }
+
+
             if ($score['isHome']) {
+
                 return [
+                    'passing' => $homeTeamStats['passing']['total'] ?? 0,
+                    'rushings' => $homeTeamStats['rushings']['total'] ?? 0,
                     'for' => $score['home_score'],
-                    'agt' => $score['away_score']
+                    'agt' => $score['away_score'],
+                    'penalties' => $hPenaltyValue,
+                    'penalties_yrds' => $hPenaltyYards,
+                    'redzone_cttd' => $hCttd,
+                    'redzone_attempts' => $hAttempts
                 ];
             }
 
             return [
+                'passing' => $awayTeamStats['passing']['total'] ?? 0,
+                'rushings' => $awayTeamStats['rushings']['total'] ?? 0,
                 'for' => $score['away_score'],
-                'agt' => $score['home_score']
+                'agt' => $score['home_score'],
+                'penalties' => $aPenaltyValue,
+                'penalties_yrds' => $aPenaltyYards,
+                'redzone_cttd' => $aCttd,
+                'redzone_attempts' => $aAttempts
             ];
         });
 
+        $redzoneCtdAvg = $avg->avg('redzone_cttd');
+        $redzoneAttemptsAvg = $avg->avg('redzone_attempts');
+        $redZonePercent = ($redzoneCtdAvg / $redzoneAttemptsAvg) * 100;
+
+
         return [
-            'for' => $avg->avg('for'),
-            'agt' => $avg->avg('agt')
+            'passing' => number_format($avg->avg('passing'), 1),
+            'rushings' => number_format($avg->avg('rushings'), 1),
+            'for' => number_format($avg->avg('for'), 1),
+            'agt' => number_format($avg->avg('agt'), 1),
+            'penalties' => number_format($avg->avg('penalties'), 1),
+            'penalties_yrds' => number_format($avg->avg('penalties_yrds'), 1),
+            'redzone_cttd' => number_format($avg->avg('redzone_cttd'), 1),
+            'redzone_attempts' => number_format($avg->avg('redzone_attempts'), 1),
+            'redzone_percent' => number_format($redZonePercent, 2),
         ];
     }
 }
