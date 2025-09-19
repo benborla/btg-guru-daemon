@@ -984,7 +984,7 @@ class NflScoresRepository
         }
 
         return [
-            'playbyplay' => $this->apiRepository->getPlayByPlayScores($contestId),
+            'playbyplay' => $this->apiRepository->getPlayByPlayScores($contestId, $data),
             'data' => $data,
             'home_standings' => $this->getTeamStandings($data->home_team_id),
             'away_standings' => $this->getTeamStandings($data->away_team_id)

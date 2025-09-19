@@ -10,6 +10,9 @@ use App\Models\NflGame;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use App\Models\NflGamePlaybyplayScores;
+use App\Repositories\Nfl\Traits\NflTeamTrait;
+use Illuminate\Support\Str;
+
 
 class NflApiRepository
 {
@@ -22,6 +25,8 @@ class NflApiRepository
     const CACHE_SECONDS = 10;
 
     public bool $needToStore = false;
+
+    use NflTeamTrait;
     
     public function getDbApiResponse()
     {
@@ -248,7 +253,6 @@ class NflApiRepository
             return $item['todayMatch'] == true && $item['gameIsOver'] == false;
         });
 
-
         return [
             'status' => $hasMatchToday, 
             'contestIds' => $matchesStatus->pluck('contestId')->filter()->toArray()
@@ -260,11 +264,13 @@ class NflApiRepository
         return  $this->getCurrentScheduledGames()->first()->week;
     }
 
-    public function getPlayByPlayScores($contestId)
+    public function getPlayByPlayScores($contestId, $currentMatchData)
     {
         $cacheKey = "nfl_api_playbyplay_live";
         $playByPlay = [];
-
+        $homeTeam = $this->getTeamAbrv($currentMatchData->home_team_id)['Abbreviation'] ?? '';
+        $awayTeam = $this->getTeamAbrv($currentMatchData->away_team_id)['Abbreviation'] ?? '';
+        
         if (Cache::has($cacheKey)) {
             $playByPlay =  Cache::get($cacheKey);
         }
@@ -331,7 +337,8 @@ class NflApiRepository
                 "1st", "2nd"
             ];
             $secondHalfQuarters = [
-                "3rd", "4th"
+                "3rd", 
+                "4th"
             ];
 
             foreach ($playByPlay['drive'] as $drive){
@@ -339,21 +346,33 @@ class NflApiRepository
 
                 foreach ($plays as $play){
 
-			$possessionTeam = $play['possession_team'] ?? $play['possessionTeam'];
+			        $possessionTeam = $play['possession_team'] ?? $play['possessionTeam'];
+                    $desc = $play['description'];
 
-			if ($play['type'] == 'TO' && $possessionTeam == 'hometeam'){
+			        if ($play['type'] == 'TO' && $possessionTeam == 'hometeam'){
 
                         $quarter = explode("-", $play['minute'])[1] ?? null;
 
                         if ($quarter) {
                             $quarter = str_replace(" ", "", $quarter);
 
-                            if (in_array($quarter, $firstHalfQuarters)) {
-                                $toHomeFirstHalf++;
-                            }
+                            if (Str::contains($desc, $homeTeam)) {
+                                
+                                if (in_array($quarter, $firstHalfQuarters)) {
+                                    $toHomeFirstHalf++;
+                                }
 
-                            if (in_array($quarter, $secondHalfQuarters)) {
-                                $toHomeSecondHalf++;
+                                if (in_array($quarter, $secondHalfQuarters)) {
+                                    $toHomeSecondHalf++;
+                                }
+                            } else {
+                                if (in_array($quarter, $firstHalfQuarters)) {
+                                    $toAwayFirstHalf++;
+                                }
+
+                                if (in_array($quarter, $secondHalfQuarters)) {
+                                    $toAwaySecondHalf++;
+                                }
                             }
                         }
                     }
@@ -364,12 +383,23 @@ class NflApiRepository
                         if ($quarter) {
                             $quarter = str_replace(" ", "", $quarter);
 
-                            if (in_array($quarter, $firstHalfQuarters)) {
-                                $toAwayFirstHalf++;
-                            }
+                            if (Str::contains($desc, $awayTeam)) {
+                                
+                                if (in_array($quarter, $firstHalfQuarters)) {
+                                    $toAwayFirstHalf++;
+                                }
 
-                            if (in_array($quarter, $secondHalfQuarters)) {
-                                $toAwaySecondHalf++;
+                                if (in_array($quarter, $secondHalfQuarters)) {
+                                    $toAwaySecondHalf++;
+                                }
+                            } else {
+                                if (in_array($quarter, $firstHalfQuarters)) {
+                                    $toHomeFirstHalf++;
+                                }
+
+                                if (in_array($quarter, $secondHalfQuarters)) {
+                                    $toHomeSecondHalf++;
+                                }
                             }
                         }
                     }
