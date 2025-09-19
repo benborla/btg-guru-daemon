@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\NflGame;
 use Carbon\Carbon;
 use App\Repositories\Nfl\NflApiRepository;
+use App\Models\NflGamePlaybyplayScores;
 
 class NflLiveUpdateScoresCommand extends Command
 {
@@ -54,6 +55,7 @@ class NflLiveUpdateScoresCommand extends Command
 
         $response = Http::get(env('APP_URL') . self::HAS_MATCH_URL);
         $status = $response->json();
+        $this->info("Has match today: " . json_encode($status));
 
         return $status['status'] ?? false;
     }
@@ -82,9 +84,29 @@ class NflLiveUpdateScoresCommand extends Command
         $response = Http::get(self::API_NFL_PLAYBYPLAY_URL);
         $matches = $response['scores']['category']['match'];
 
+        $this->storePlayByPlay($matches);
         Cache::put($cacheKey, $matches, now()->addDays(1));
 
         return $matches;
+    }
+
+    public function storePlayByPlay($matches)
+    {
+        $matches = collect($matches);
+        if ($matches->count() > 0) {
+
+            $matches->map(function($item){
+                NflGamePlaybyplayScores::updateOrCreate(
+                    [
+                        'contest_id' => $item['contestID']
+                    ],
+                    [
+                        'response' => $item
+                    ]
+                );
+            });
+        
+        }
     }
 
     public function updateScores()
