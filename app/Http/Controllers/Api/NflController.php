@@ -210,7 +210,7 @@ class NflController extends Controller
     public function hasMatchToday()
     {
         return response()->json(
-            ['status' => $this->repository->hasMatchToday()]
+            $this->repository->hasMatchToday()
         );
     }
 

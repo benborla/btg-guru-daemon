@@ -101,7 +101,48 @@ class NflGame extends Model
         'spreadbox',
         'score_page_time',
         'current_game_status',
+        'current_quarter',
     ];
+
+    public function getCurrentQuarterAttribute()
+    {
+       $events = $this->events ?? [];
+
+       if (empty($events)) {
+         return null;
+       }
+
+       $firstQuarter = $events['firstquarter'] ?? [];
+       $secondQuarter = $events['secondquarter'] ?? [];
+       $thirdQuarter = $events['thirdquarter'] ?? [];
+       $fourthQuarter = $events['fourthquarter'] ?? [];
+       $overtime = $events['overtime'] ?? [];
+
+
+       if (!empty($overtime)) {
+         return 'OT';
+       }
+
+       if (!empty($fourthQuarter)) {
+         return '4th';
+       }
+
+       if (!empty($thirdQuarter)) {
+         return '3rd';
+       }
+
+       if (!empty($secondQuarter)) {
+         return '2nd';
+       }
+
+
+       if (!empty($firstQuarter)) {
+         return '1st';
+       }
+
+
+       return null;
+    }
 
     public function getCurrentGameStatusAttribute()
     {
@@ -254,7 +295,7 @@ class NflGame extends Model
         } else {
           // must still show an empty entry
           // must show the final score
-          if (!empty($this->events['thirdquarter'])) {
+          if (!empty($this->events['thirdquarter']) && $this->status == 'Final') {
           $sorted[] = [
             'name' => '4th Quarter',
             'short' => '4th',
@@ -281,8 +322,8 @@ class NflGame extends Model
             'short' => '3rd',
             'events' => $q3,
             'start_name' => 'Start of 3rd Quarter',
-            'end_name' => $events['fourthquarter'] ? 'End of 3rd Quarter' : (empty($events['fourthquarter']) ? 'Final' : ''),
-          ];
+	    'end_name' => $events['fourthquarter'] && $this->status == 'Final' ? 'End of 3rd Quarter' :  '-'
+	  ];
         }
 
         if (!empty($events['secondquarter'])) {

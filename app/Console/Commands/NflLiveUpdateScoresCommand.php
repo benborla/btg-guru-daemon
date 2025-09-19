@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\NflGame;
 use Carbon\Carbon;
 use App\Repositories\Nfl\NflApiRepository;
+use App\Models\NflGamePlaybyplayScores;
 
 class NflLiveUpdateScoresCommand extends Command
 {
@@ -32,6 +33,7 @@ class NflLiveUpdateScoresCommand extends Command
     private const CACHE_PREFIX = 'nfl-standings';
     private const DEFAULT_CACHE_TTL = 86400; // 1 day in seconds
     private const HAS_MATCH_URL = '/api/v1/nfl/has-match-today'; // 1 day in seconds
+    private const API_NFL_PLAYBYPLAY_URL = "https://www.goalserve.com/getfeed/9645f122eef946c1c7bd08dd5ac0e712/football/nfl-playbyplay-scores?json=1";
 
     /**
      * Execute the console command.
@@ -41,10 +43,8 @@ class NflLiveUpdateScoresCommand extends Command
         if ($this->hasMatchToday()) {
             $this->info('🏈 Has match today');
             $this->updateScores();
-        } else {
-            $this->info('No match today');
+            $this->fetchApiPlayByPlay();
         }
-
     }
 
     public function hasMatchToday()
@@ -55,6 +55,7 @@ class NflLiveUpdateScoresCommand extends Command
 
         $response = Http::get(env('APP_URL') . self::HAS_MATCH_URL);
         $status = $response->json();
+        $this->info("Has match today: " . json_encode($status));
 
         return $status['status'] ?? false;
     }
@@ -73,6 +74,39 @@ class NflLiveUpdateScoresCommand extends Command
         Cache::put($cacheKey, $response->json(), now()->addSeconds(10));
 
         return $response->json();
+    }
+
+    public function fetchApiPlayByPlay()
+    {
+        $cacheKey = "nfl_api_playbyplay_live";
+
+        $this->info("Fetching LIVE API playbyplay...");
+        $response = Http::get(self::API_NFL_PLAYBYPLAY_URL);
+        $matches = $response['scores']['category']['match'];
+
+        $this->storePlayByPlay($matches);
+        Cache::put($cacheKey, $matches, now()->addDays(1));
+
+        return $matches;
+    }
+
+    public function storePlayByPlay($matches)
+    {
+        $matches = collect($matches);
+        if ($matches->count() > 0) {
+
+            $matches->map(function($item){
+                NflGamePlaybyplayScores::updateOrCreate(
+                    [
+                        'contest_id' => $item['contestID']
+                    ],
+                    [
+                        'response' => $item
+                    ]
+                );
+            });
+        
+        }
     }
 
     public function updateScores()

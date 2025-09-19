@@ -10,6 +10,9 @@ use App\Models\NflGame;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use App\Models\NflGamePlaybyplayScores;
+use App\Repositories\Nfl\Traits\NflTeamTrait;
+use Illuminate\Support\Str;
+
 
 class NflApiRepository
 {
@@ -22,6 +25,8 @@ class NflApiRepository
     const CACHE_SECONDS = 10;
 
     public bool $needToStore = false;
+
+    use NflTeamTrait;
     
     public function getDbApiResponse()
     {
@@ -239,6 +244,7 @@ class NflApiRepository
 
             return [
                 'todayMatch' => $hasTodayMatch,
+                'contestId' =>  $hasTodayMatch ? $match->contest_id : null,
                 'gameIsOver' => $match['status'] == 'Final' || $match['status'] == 'After Over Time'
             ];
         })->filter();
@@ -247,9 +253,10 @@ class NflApiRepository
             return $item['todayMatch'] == true && $item['gameIsOver'] == false;
         });
 
-
-        
-        return $hasMatchToday;
+        return [
+            'status' => $hasMatchToday, 
+            'contestIds' => $matchesStatus->pluck('contestId')->filter()->toArray()
+        ];
     }
 
     public function getCurrentWeek()
@@ -257,14 +264,162 @@ class NflApiRepository
         return  $this->getCurrentScheduledGames()->first()->week;
     }
 
-    public function getPlayByPlayScores($contestId)
+    public function getPlayByPlayScores($contestId, $currentMatchData)
     {
-        $playByPlay = NflGamePlaybyplayScores::where('contest_id', $contestId)->first();
+        $cacheKey = "nfl_api_playbyplay_live";
+        $playByPlay = [];
+        $homeTeam = $this->getTeamAbrv($currentMatchData->home_team_id)['Abbreviation'] ?? '';
+        $awayTeam = $this->getTeamAbrv($currentMatchData->away_team_id)['Abbreviation'] ?? '';
+        
+        if (Cache::has($cacheKey)) {
+            $playByPlay =  Cache::get($cacheKey);
+        }
 
-        if (empty($playByPlay)) {
-            $this->fetchApiPlayByPlay();
-            // retrieve
-            $playByPlay = NflGamePlaybyplayScores::where('contest_id', $contestId)->first();
+        // for testing
+        // $testData = NflGamePlaybyplayScores::where('contest_id', '204639')->first();
+        // $testData = $testData->response;
+
+        if (!empty($playByPlay)) {
+            $data = collect($playByPlay)->where('contestID', $contestId)->first();
+            // $data = $testData;
+            $playByPlay = $data['playbyplay'] ?? [];
+
+            if (empty($playByPlay)) {
+                return [];
+            }
+
+            $drives = $playByPlay['drive'] ?? [];
+
+            if (empty($drives)) {
+                return [];
+            }
+
+	    if (isset($drives['id'])) {
+	    	$drives = [$drives];
+	    }
+
+            $drives = collect($drives)->first();
+            $drives['play'] = collect($drives['play'])->reverse()->first();
+            //CLOCK - down start - description - down end
+            // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
+            $drives['image_name'] = str_replace(' ', '_', $drives['name']) ?? "";
+            $fullDesc = "";
+
+            if (isset($drives['play']['minute'])) {
+                $fullDesc .= "<span class='fw-bold'>" . $drives['play']['minute'] . "</span>"; 
+            }
+
+            if (isset($drives['play']['down_start'])) {
+                $fullDesc .= " - " . $drives['play']['down_start'];
+            }
+
+            if (isset($drives['play']['description'])) {
+                $fullDesc .= " - " . $drives['play']['description']; 
+            }
+
+            if (isset($drives['play']['down_end'])) {
+                $fullDesc .= " - " . $drives['play']['down_end']; 
+            }
+
+            $drives['play']['full_description'] = $fullDesc;
+
+            
+            $drives['current_drive'] = $drives['team'] == 'hometeam' ? 'home' : 'away';
+            // $drives['current_drive'] = "home";
+            // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
+            // $drives['image_name'] = 'Cleveland_Browns';
+
+            $toHomeFirstHalf = 0;
+            $toHomeSecondHalf = 0;
+            $toAwayFirstHalf = 0;
+            $toAwaySecondHalf = 0;
+            $firstHalfQuarters = [
+                "1st", "2nd"
+            ];
+            $secondHalfQuarters = [
+                "3rd", 
+                "4th"
+            ];
+
+            foreach ($playByPlay['drive'] as $drive){
+                $plays = $drive['play'] ?? [];
+
+                foreach ($plays as $play){
+
+			        $possessionTeam = $play['possession_team'] ?? $play['possessionTeam'];
+                    $desc = $play['description'];
+
+			        if ($play['type'] == 'TO' && $possessionTeam == 'hometeam'){
+
+                        $quarter = explode("-", $play['minute'])[1] ?? null;
+
+                        if ($quarter) {
+                            $quarter = str_replace(" ", "", $quarter);
+
+                            if (Str::contains($desc, $homeTeam)) {
+                                
+                                if (in_array($quarter, $firstHalfQuarters)) {
+                                    $toHomeFirstHalf++;
+                                }
+
+                                if (in_array($quarter, $secondHalfQuarters)) {
+                                    $toHomeSecondHalf++;
+                                }
+                            } else {
+                                if (in_array($quarter, $firstHalfQuarters)) {
+                                    $toAwayFirstHalf++;
+                                }
+
+                                if (in_array($quarter, $secondHalfQuarters)) {
+                                    $toAwaySecondHalf++;
+                                }
+                            }
+                        }
+                    }
+                
+                    if ($play['type'] == 'TO' && $possessionTeam =='awayteam'){
+                        $quarter = explode("-", $play['minute'])[1] ?? null;
+
+                        if ($quarter) {
+                            $quarter = str_replace(" ", "", $quarter);
+
+                            if (Str::contains($desc, $awayTeam)) {
+                                
+                                if (in_array($quarter, $firstHalfQuarters)) {
+                                    $toAwayFirstHalf++;
+                                }
+
+                                if (in_array($quarter, $secondHalfQuarters)) {
+                                    $toAwaySecondHalf++;
+                                }
+                            } else {
+                                if (in_array($quarter, $firstHalfQuarters)) {
+                                    $toHomeFirstHalf++;
+                                }
+
+                                if (in_array($quarter, $secondHalfQuarters)) {
+                                    $toHomeSecondHalf++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            $to = [
+                'home' => [
+                    'firstHalf' => $toHomeFirstHalf,
+                    'secondHalf' => $toHomeSecondHalf
+                ],
+                'away' => [
+                    'firstHalf' => $toAwayFirstHalf,
+                    'secondHalf' => $toAwaySecondHalf
+                ]
+            ];
+
+            $drives['to'] = $to;
+
+            $playByPlay = $drives;
         }
 
         return $playByPlay;
