@@ -241,11 +241,12 @@ class NflApiRepository
         $matchesStatus = $dataToday->map(function($match){
             $gameDate = Carbon::parse($match->datetime_utc, "UTC")->setTimeZone('Australia/Sydney');
             $hasTodayMatch = $gameDate->diffInSeconds(now()) > 180;
+            $gameIsOver = $match['status'] == 'Final' || $match['status'] == 'After Over Time';
 
             return [
                 'todayMatch' => $hasTodayMatch,
-                'contestId' =>  $hasTodayMatch ? $match->contest_id : null,
-                'gameIsOver' => $match['status'] == 'Final' || $match['status'] == 'After Over Time'
+                'contestId' =>  $hasTodayMatch && !$gameIsOver ? $match->contest_id : null,
+                'gameIsOver' => $gameIsOver
             ];
         })->filter();
 
