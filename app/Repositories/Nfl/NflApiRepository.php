@@ -256,7 +256,7 @@ class NflApiRepository
 
         return [
             'status' => $hasMatchToday, 
-            'contestIds' => $matchesStatus->pluck('contestId')->filter()->toArray()
+            'contestIds' => $matchesStatus->pluck('contestId')->filter()->values()
         ];
     }
 
