@@ -154,12 +154,14 @@ class NflScoresRepository
 
     private function isAfc($teamId)
     {
-        return in_array($teamId, $this->getTeamTypesFlat()['AFC']->toArray());
+	$teamFlat = $this->getTeamTypesFlat();
+
+        return in_array($teamId, $this->getTeamTypesFlat()['AFC']->toArray()) ?? null;
     }
 
     private function isNfc($teamId)
     {
-        return in_array($teamId, $this->getTeamTypesFlat()['NFC']->toArray());
+        return in_array($teamId, $this->getTeamTypesFlat()['NFC']->toArray()) ?? null;
     }
 
     public function getTeamsInfo($season) :Collection
@@ -175,11 +177,13 @@ class NflScoresRepository
                     if (isset($b['match'])) {
                         return collect($b['match'])->flatMap(function($c){
 
-                        $isAfcHome = $this->isAfc($c['hometeam']['id']);
-                        $isNfcHome = $this->isNfc($c['hometeam']['id']);
+		        if (!isset($c['hometeam']['id']) || !isset($c['awayteam']['id'])) {return []; }
 
-                        $isAfcAway= $this->isAfc($c['awayteam']['id']);
-                        $isNfcAway = $this->isNfc($c['awayteam']['id']);
+                        $isAfcHome = $this->isAfc($c['hometeam']['id'] ?? null);
+                        $isNfcHome = $this->isNfc($c['hometeam']['id'] ?? null);
+
+                        $isAfcAway= $this->isAfc($c['awayteam']['id'] ?? null);
+                        $isNfcAway = $this->isNfc($c['awayteam']['id'] ?? null);
 
                         return [
                             [
