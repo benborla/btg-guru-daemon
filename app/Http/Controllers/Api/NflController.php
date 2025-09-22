@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Repositories\Nfl\NflScoresRepository;
 use App\Repositories\Nfl\NflApiRepository;
+use App\Repositories\Nfl\NflPlayByPlayRepository;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 
@@ -13,7 +14,8 @@ class NflController extends Controller
 
     public function __construct(
         private NflScoresRepository $repository,
-        private NflApiRepository $apiRepository
+        private NflApiRepository $apiRepository,
+        private NflPlayByPlayRepository $playByPlayRepository
     ) {}
 
     public function liveScores()
@@ -234,5 +236,12 @@ class NflController extends Controller
         }
 
         return response()->json($roosters);
+    }
+
+    public function getPlayByPlay($contestId)
+    {
+        return response()->json([
+            'data' => $this->playByPlayRepository->getPlayByPlay($contestId)
+        ]);
     }
 }
