@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class NflGame extends Model
 {
@@ -107,39 +108,28 @@ class NflGame extends Model
     public function getCurrentQuarterAttribute()
     {
        $events = $this->events ?? [];
+       $validQuarters = [
+          '1st',
+          '2nd',
+          '3rd',
+          '4th',
+          'OT',
+          'After Over Time'
+       ];
 
-       if (empty($events)) {
-         return null;
-       }
+       $status = $this->status ?? null;
+       $quarter = explode(" ", $status)[0] ?? '';
 
-       $firstQuarter = $events['firstquarter'] ?? [];
-       $secondQuarter = $events['secondquarter'] ?? [];
-       $thirdQuarter = $events['thirdquarter'] ?? [];
-       $fourthQuarter = $events['fourthquarter'] ?? [];
-       $overtime = $events['overtime'] ?? [];
-
-
-       if (!empty($overtime)) {
+       if ($status == 'After Over Time') {
          return 'OT';
        }
 
-       if (!empty($fourthQuarter)) {
-         return '4th';
+       $joinQuarters = implode(" ", $validQuarters);
+       $isInJoinQuarters = Str::contains($joinQuarters, $quarter);
+
+       if (in_array($quarter, $validQuarters) || $isInJoinQuarters) {
+         return $quarter;
        }
-
-       if (!empty($thirdQuarter)) {
-         return '3rd';
-       }
-
-       if (!empty($secondQuarter)) {
-         return '2nd';
-       }
-
-
-       if (!empty($firstQuarter)) {
-         return '1st';
-       }
-
 
        return null;
     }
