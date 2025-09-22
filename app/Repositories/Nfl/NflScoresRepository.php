@@ -1097,7 +1097,10 @@ class NflScoresRepository
                 'redzone_percent' => $allMatchesDataComputation['redzone_percent'],
                 'redzone_cttd' => $allMatchesDataComputation['redzone_cttd'],
                 'redzone_attempts' => $allMatchesDataComputation['redzone_attempts'],
-
+                'td_rec_total' => $allMatchesDataComputation['td_rec_total'],
+                'td_rushings_total' => $allMatchesDataComputation['td_rushings_total'],
+                'td_total' => $allMatchesDataComputation['td_total'],
+                'td_avg_total' => $allMatchesDataComputation['td_avg_total'],
             ];
         });
 
@@ -1124,21 +1127,41 @@ class NflScoresRepository
                 ['redzone_percent', 'desc']
             ]);
 
+            $tdRecRank = $teamScores->sortBy([
+                ['td_rec_total', 'desc']
+            ]);
+            $tdRushingsRank = $teamScores->sortBy([
+                ['td_rushings_total', 'desc']
+            ]);
+            $tdRank = $teamScores->sortBy([
+                ['td_total', 'desc']
+            ]);
+            $tdAvgRank = $teamScores->sortBy([
+                ['td_avg_total', 'desc']
+            ]);
+
             $avgForRankFor = $this->getTeamRank($avgRankFor, $id);
             $avgPassingRank = $this->getTeamRank($avgRankPassing, $id);
             $avgRushingsRank = $this->getTeamRank($avgRankRushings, $id);
             $avgPenaltyRank = $this->getTeamRank($avgPenaltyRank, $id);
             $redZoneRank = $this->getTeamRank($redZoneRank, $id);
+            $tdRecRank = $this->getTeamRank($tdRecRank, $id);
+            $tdRushingsRank = $this->getTeamRank($tdRushingsRank, $id);
+            $tdRank = $this->getTeamRank($tdRank, $id);
+            $tdAvgRank = $this->getTeamRank($tdAvgRank, $id);
 
             $team['avg_for_rank'] = Number::ordinal($avgForRankFor + 1);
             $team['avg_passing_rank'] = Number::ordinal($avgPassingRank + 1);
             $team['avg_rushings_rank'] = Number::ordinal($avgRushingsRank + 1);
             $team['penalty_rank'] = Number::ordinal($avgPenaltyRank + 1);
             $team['redzone_rank'] = Number::ordinal($redZoneRank + 1);
+            $team['td_rec_rank'] = Number::ordinal($tdRecRank + 1);
+            $team['td_rushings_rank'] = Number::ordinal($tdRushingsRank + 1);
+            $team['td_rank'] = Number::ordinal($tdRank + 1);
+            $team['td_avg_rank'] = Number::ordinal($tdAvgRank + 1);
 
             return $team;
         });
-
 
         return $withRankings;
     }
@@ -1175,8 +1198,9 @@ class NflScoresRepository
             $aPenalties = $awayTeamStats['penalties']['total'] ?? 0;
             $hRedZone = $homeTeamStats['red_zone']['made_att'] ?? 0;
             $aRedZone = $awayTeamStats['red_zone']['made_att'] ?? 0;
+            $receiving = $score['receiving'] ?? [];
+            $rushing = $score['rushing'] ?? [];
             
-
             $hPenalties = explode('-', $hPenalties);
             $hPenaltyValue = (int) $hPenalties[0] ?? 0;
             $hPenaltyYards = (int) $hPenalties[1] ?? 0;
@@ -1203,7 +1227,17 @@ class NflScoresRepository
                 $aAttempts = (int) $aRedZone[1] ?? 0;
             }
 
+            $hRec = $receiving['hometeam'] ?? [];
+            $aRec = $receiving['awayteam'] ?? [];
+            $hRecPlayerTd = collect($hRec['player'] ?? []);
+            $aRecPlayerTd = collect($aRec['player'] ?? []);
+            $hRushing = collect($rushing['hometeam']['player'] ?? []);
+            $aRushing = collect($rushing['awayteam']['player'] ?? []);
+            $hTdTot = $hRecPlayerTd->sum('receiving_touch_downs') + $hRushing->sum('rushing_touch_downs');
+            $aTdTot = $aRecPlayerTd->sum('receiving_touch_downs') + $aRushing->sum('rushing_touch_downs');
+            
 
+            // check for home if team is home
             if ($score['isHome']) {
 
                 return [
@@ -1214,10 +1248,14 @@ class NflScoresRepository
                     'penalties' => $hPenaltyValue,
                     'penalties_yrds' => $hPenaltyYards,
                     'redzone_cttd' => $hCttd,
-                    'redzone_attempts' => $hAttempts
+                    'rec_player_td' => $hRecPlayerTd->sum('receiving_touch_downs'),
+                    'rushings_player_td' => $hRushing->sum('rushing_touch_downs'),
+                    'td_total' => $hTdTot,
                 ];
             }
 
+
+            // by deafult get values from away team
             return [
                 'passing' => $awayTeamStats['passing']['total'] ?? 0,
                 'rushings' => $awayTeamStats['rushings']['total'] ?? 0,
@@ -1226,14 +1264,19 @@ class NflScoresRepository
                 'penalties' => $aPenaltyValue,
                 'penalties_yrds' => $aPenaltyYards,
                 'redzone_cttd' => $aCttd,
-                'redzone_attempts' => $aAttempts
+                'redzone_attempts' => $aAttempts,
+                'rec_player_td' => $aRecPlayerTd->sum('receiving_touch_downs'),
+                'rushings_player_td' => $aRushing->sum('rushing_touch_downs'),
+                'td_total' => $aTdTot,
             ];
         });
 
         $redzoneCtdAvg = $avg->avg('redzone_cttd');
         $redzoneAttemptsAvg = $avg->avg('redzone_attempts');
         $redZonePercent = ($redzoneCtdAvg / $redzoneAttemptsAvg) * 100;
-
+        $tdRec = number_format($avg->sum('rec_player_td'), 1);
+        $tdRushings = number_format($avg->sum('rushings_player_td'), 1);
+        
 
         return [
             'passing' => number_format($avg->avg('passing'), 1),
@@ -1245,6 +1288,10 @@ class NflScoresRepository
             'redzone_cttd' => number_format($avg->avg('redzone_cttd'), 1),
             'redzone_attempts' => number_format($avg->avg('redzone_attempts'), 1),
             'redzone_percent' => number_format($redZonePercent, 2),
+            'td_rec_total' => $tdRec,
+            'td_rushings_total' => $tdRushings,
+            'td_total' => number_format($avg->sum('td_total'), 1),
+            'td_avg_total' => number_format($avg->avg('td_total'), 1),
         ];
     }
 }
