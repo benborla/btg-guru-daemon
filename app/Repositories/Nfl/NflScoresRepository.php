@@ -1090,6 +1090,7 @@ class NflScoresRepository
             return [
                 ...$team,
                 'avg_for' => $teamAvgFor['for'],
+                'avg_agt' => $teamAvgFor['agt'],
                 'avg_passing' => $allMatchesDataComputation['passing'],
                 'avg_rushings' => $allMatchesDataComputation['rushings'],
                 'penalties' => $allMatchesDataComputation['penalties'],
@@ -1110,6 +1111,10 @@ class NflScoresRepository
 
             $avgRankFor = $teamScores->sortBy([
                 ['avg_for', 'desc']
+            ]);
+
+            $avgRankAgt = $teamScores->sortBy([
+                ['avg_agt', 'desc']
             ]);
             $avgRankPassing = $teamScores->sortBy([
                 ['avg_passing', 'desc']
@@ -1149,6 +1154,7 @@ class NflScoresRepository
             $tdRushingsRank = $this->getTeamRank($tdRushingsRank, $id);
             $tdRank = $this->getTeamRank($tdRank, $id);
             $tdAvgRank = $this->getTeamRank($tdAvgRank, $id);
+            $avgAgtRank = $this->getTeamRank($avgRankAgt, $id);
 
             $team['avg_for_rank'] = Number::ordinal($avgForRankFor + 1);
             $team['avg_passing_rank'] = Number::ordinal($avgPassingRank + 1);
@@ -1159,6 +1165,7 @@ class NflScoresRepository
             $team['td_rushings_rank'] = Number::ordinal($tdRushingsRank + 1);
             $team['td_rank'] = Number::ordinal($tdRank + 1);
             $team['td_avg_rank'] = Number::ordinal($tdAvgRank + 1);
+            $team['avg_agt_rank'] = Number::ordinal($avgAgtRank + 1);
 
             return $team;
         });
@@ -1200,6 +1207,8 @@ class NflScoresRepository
             $aRedZone = $awayTeamStats['red_zone']['made_att'] ?? 0;
             $receiving = $score['receiving'] ?? [];
             $rushing = $score['rushing'] ?? [];
+            dump($homeTeamStats, $awayTeamStats);
+            dd($score->passing);
             
             $hPenalties = explode('-', $hPenalties);
             $hPenaltyValue = (int) $hPenalties[0] ?? 0;
