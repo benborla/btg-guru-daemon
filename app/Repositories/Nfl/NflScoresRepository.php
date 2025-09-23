@@ -1102,6 +1102,8 @@ class NflScoresRepository
                 'td_rushings_total' => $allMatchesDataComputation['td_rushings_total'],
                 'td_total' => $allMatchesDataComputation['td_total'],
                 'td_avg_total' => $allMatchesDataComputation['td_avg_total'],
+                'def_passing_allowed_agt' => $allMatchesDataComputation['def_passing_allowed_agt'],
+                'def_rushing_allowed_agt' => $allMatchesDataComputation['def_rushing_allowed_agt'],
             ];
         });
 
@@ -1144,6 +1146,13 @@ class NflScoresRepository
             $tdAvgRank = $teamScores->sortBy([
                 ['td_avg_total', 'desc']
             ]);
+            $defPassingAllowedRank = $teamScores->sortBy([
+                ['def_passing_allowed_agt', 'desc']
+            ]);
+            $defRushingAllowedRank = $teamScores->sortBy([
+                ['def_rushing_allowed_agt', 'desc']
+            ]);
+
 
             $avgForRankFor = $this->getTeamRank($avgRankFor, $id);
             $avgPassingRank = $this->getTeamRank($avgRankPassing, $id);
@@ -1155,6 +1164,8 @@ class NflScoresRepository
             $tdRank = $this->getTeamRank($tdRank, $id);
             $tdAvgRank = $this->getTeamRank($tdAvgRank, $id);
             $avgAgtRank = $this->getTeamRank($avgRankAgt, $id);
+            $defPassingAllowedRank = $this->getTeamRank($defPassingAllowedRank, $id);
+            $defRushingAllowedRank = $this->getTeamRank($defRushingAllowedRank, $id);
 
             $team['avg_for_rank'] = Number::ordinal($avgForRankFor + 1);
             $team['avg_passing_rank'] = Number::ordinal($avgPassingRank + 1);
@@ -1166,6 +1177,8 @@ class NflScoresRepository
             $team['td_rank'] = Number::ordinal($tdRank + 1);
             $team['td_avg_rank'] = Number::ordinal($tdAvgRank + 1);
             $team['avg_agt_rank'] = Number::ordinal($avgAgtRank + 1);
+            $team['def_passing_allowed_agt_rank'] = Number::ordinal($defPassingAllowedRank + 1);
+            $team['def_rushing_allowed_agt_rank'] = Number::ordinal($defRushingAllowedRank + 1);
 
             return $team;
         });
@@ -1207,8 +1220,6 @@ class NflScoresRepository
             $aRedZone = $awayTeamStats['red_zone']['made_att'] ?? 0;
             $receiving = $score['receiving'] ?? [];
             $rushing = $score['rushing'] ?? [];
-            dump($homeTeamStats, $awayTeamStats);
-            dd($score->passing);
             
             $hPenalties = explode('-', $hPenalties);
             $hPenaltyValue = (int) $hPenalties[0] ?? 0;
@@ -1245,7 +1256,6 @@ class NflScoresRepository
             $hTdTot = $hRecPlayerTd->sum('receiving_touch_downs') + $hRushing->sum('rushing_touch_downs');
             $aTdTot = $aRecPlayerTd->sum('receiving_touch_downs') + $aRushing->sum('rushing_touch_downs');
             
-
             // check for home if team is home
             if ($score['isHome']) {
 
@@ -1260,6 +1270,8 @@ class NflScoresRepository
                     'rec_player_td' => $hRecPlayerTd->sum('receiving_touch_downs'),
                     'rushings_player_td' => $hRushing->sum('rushing_touch_downs'),
                     'td_total' => $hTdTot,
+                    'def_passing_allowed_agt' => $awayTeamStats['first_downs']['passing'] ?? 0,
+                    'def_rushing_allowed_agt' => $awayTeamStats['first_downs']['rushing'] ?? 0,
                 ];
             }
 
@@ -1277,6 +1289,8 @@ class NflScoresRepository
                 'rec_player_td' => $aRecPlayerTd->sum('receiving_touch_downs'),
                 'rushings_player_td' => $aRushing->sum('rushing_touch_downs'),
                 'td_total' => $aTdTot,
+                'def_passing_allowed_agt' => $homeTeamStats['first_downs']['passing'] ?? 0,
+                'def_rushing_allowed_agt' => $homeTeamStats['first_downs']['rushing'] ?? 0,
             ];
         });
 
@@ -1301,6 +1315,8 @@ class NflScoresRepository
             'td_rushings_total' => $tdRushings,
             'td_total' => number_format($avg->sum('td_total'), 1),
             'td_avg_total' => number_format($avg->avg('td_total'), 1),
+            'def_passing_allowed_agt' => number_format($avg->avg('def_passing_allowed_agt'), 1),
+            'def_rushing_allowed_agt' => number_format($avg->avg('def_rushing_allowed_agt'), 1),
         ];
     }
 }
