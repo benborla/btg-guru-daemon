@@ -50,7 +50,7 @@ class AflLiveUpdateScoresCommand extends Command
                 $this->updateScores($res, $game);
             });
         } else {
-            $this->info('No AFL games today ' . date('Y-m-d H:i:s'));
+            //$this->info('No AFL games today ' . date('Y-m-d H:i:s'));
         }
     }
 
