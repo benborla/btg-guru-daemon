@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Types\AflRequestType;
+use Carbon\Carbon;
 
 class AflController extends Controller
 {
@@ -185,30 +186,20 @@ class AflController extends Controller
 
     public function getMatchData(string $round, string $matchId): JsonResponse
     {
-        $data = AflApiResponse::findByMatchData($matchId, $round)->first();
-        // check in schedule
-        if (is_null($data)) {
-            $data = AflSchedule::where('match_id', $matchId)->first();
-        }
+        // get from schedule first 
+        $data = AflSchedule::where('match_id', $matchId)->first();
+        $matchDate = $data->date ?? '';
 
-        abort_if(!$data, 404, 'Match not found');
-
-        $isRecordedMatch = $data->request_type === AflRequestType::Record->name;
-
-        // Create a cache key for this specific match
-        $cacheKey = 'afl_match_data_' . $round . '_' . $matchId;
-
-        // For recorded matches, use cache with a year expiration
-        // For live matches, always get fresh data
-        if ($isRecordedMatch) {
-            $aflService = $this->aflService;
-            $response = Cache::remember($cacheKey, now()->addYear(), function () use ($data, $matchId, $aflService) {
-                return process_match_data($data, $matchId, $aflService);
-            });
-
+        $uri = '/afl/home?json=1&date=' . $matchDate;
+        // get from the api response which has the most updated scores data
+        $apiResponse = AflApiResponse::where('uri', $uri)->first();
+        $response = $data;
+        
+        if (!empty($apiResponse)) {
+            $response = process_match_data($apiResponse, $matchId, $this->aflService);
+	        $response['round'] =  $this->aflService->aflPlayOffMappingNames($response['round'])['full_name'] ?? $response['round'];
         } else {
-            if ($data instanceof AflSchedule) {
-                return response()->json([
+             return response()->json([
                     'match_date' => $data->date,
                     'source' => 'proxy_server',
                     'round' => $this->aflService->aflPlayOffMappingNames($data->round)['full_name'] ?? $data->round,
@@ -243,14 +234,11 @@ class AflController extends Controller
                         'localteam' => [],
                         'visitorteam' => []
                     ]
-                ]);
-            }
-
-            $response = process_match_data($data, $matchId, $this->aflService);
-
+                ]
+            );
         }
+        
 
-	    $response['round'] =  $this->aflService->aflPlayOffMappingNames($response['round'])['full_name'] ?? $response['round'];
 
         return response()->json($response);
     }
@@ -270,5 +258,42 @@ class AflController extends Controller
     {
         dd(iterate_through_current_round_until_start());
         dd('test');
+    }
+
+    public function currentLiveGames()
+    {
+        $aflGames = AflSchedule::where([
+            ['status' , '!=', 'Full Time']
+        ])->get();
+
+        if ($aflGames->isEmpty()) {
+            return response()->json([
+                'data' => []
+            ]);
+        }
+
+        $upcomingGameDates = $aflGames->map(function ($game) {
+            $date = $game->date ?? '';
+            $time = $game->time ?? '';
+
+            $auDateTime = Carbon::parse($date . ' ' . $time);
+            $now = Carbon::now();
+
+            $diffInMinutes = $auDateTime->diffInMinutes($now);
+
+            if ($diffInMinutes > 0 && $game->status != 'Full Time') {
+                return [
+                    'date' => $date,
+                    'round' => $game->round
+                ];
+            }
+
+            return null;
+        })->filter();
+
+
+        return response()->json([
+            'data' => $upcomingGameDates
+        ]);
     }
 }
