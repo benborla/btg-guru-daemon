@@ -16,8 +16,8 @@ class NflPlayByPlayRepository
 
     public function getPlayByPlay($contestId)
     {
-         $data = $this->model->where('contest_id', $contestId)->first();
-         $matchData = NflGame::where('contest_id', $contestId)->first();
+         $data = $this->model->where('contest_id', $contestId)->first() ?? [];
+         $matchData = NflGame::where('contest_id', $contestId)->first() ?? [];
 
          $response = $data->response ?? [];
 
@@ -55,16 +55,19 @@ class NflPlayByPlayRepository
 
             $drive['team_image_name'] = str_replace(" ", "_", $drive['name']);
             $lastPlay = $plays->filter(function($play) {
-               return $play['type'] != 'Off TO';
+               return $play['type'] != 'Off TO' && $play['type'] != 'EH' && $play['type'] != 'PASS';
             })->last();
 
+
             $quarter = $lastPlay['quarter'] ?? $quarter;
+
+
 
             return [
                 ...$drive,
                 'play' => $plays,
                 'quarter' => $quarter,
-                'first_play_type' => $this->getTypeName($lastPlay['type']),
+                'first_play_type' => $this->getTypeName($lastPlay['type'], [], true) ?? '',
                 'away_short_name' => $matchData['away_team_short_name'] ?? '',
                 'home_short_name' => $matchData['home_team_short_name'] ?? '',
                 'away_score' => $awayScore,
@@ -83,13 +86,18 @@ class NflPlayByPlayRepository
 
 
          return [
-            ...$response
+            'playbyplay' => [
+                ...$response
+            ],
+            'matchData' => $matchData
          ];
     }
 
-    private function getTypeName($type, $data = []) {
+    private function getTypeName($type, $data = [], $forParent = false) {
         switch ($type) {
             case 'TD':
+                return $forParent ? 'Touchdown' : ($data['yards'] ?? 0) . '-yd Pass';
+            case '2PT':
                 return 'Touchdown';
             case 'FG':
                 return 'Field Goal';
@@ -101,8 +109,16 @@ class NflPlayByPlayRepository
                 return ($data['yards'] ?? 0) . '-yd Pass';
             case 'PASS INCOMPLETE':
                 return 'Incompletion';
+            case 'PASS TD':
+                return $forParent ? 'Touchdown' : 'Passing Touchdown';
+            case 'PUNT':
+                return 'Punt';
+            case 'EG':
+                return 'End of Game';
             case 'PAT':
                 return 'PAT';
+            case 'FUMBLE REC':
+                return 'Fumble';
                     default:
                 return $type;
         }
