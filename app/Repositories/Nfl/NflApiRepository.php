@@ -276,8 +276,8 @@ class NflApiRepository
             $playByPlay =  Cache::get($cacheKey);
         }
 
-        // for testing
-        // $testData = NflGamePlaybyplayScores::where('contest_id', '204639')->first();
+        // // for testing
+        // $testData = NflGamePlaybyplayScores::where('contest_id', '204642')->first();
         // $testData = $testData->response;
 
         if (!empty($playByPlay)) {
@@ -295,11 +295,16 @@ class NflApiRepository
                 return [];
             }
 
-	    if (isset($drives['id'])) {
-	    	$drives = [$drives];
-	    }
+	        if (isset($drives['id'])) {
+	    	    $drives = [$drives];
+	        }
+
 
             $drives = collect($drives)->first();
+
+            if (isset($drives['play']['id'])) {
+                $drives['play'] = [$drives['play']];
+            }
             $drives['play'] = collect($drives['play'])->reverse()->first();
             //CLOCK - down start - description - down end
             // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
@@ -324,16 +329,14 @@ class NflApiRepository
 
             $drives['play']['full_description'] = $fullDesc;
 
-            
             $drives['current_drive'] = $drives['team'] == 'hometeam' ? 'home' : 'away';
-            // $drives['current_drive'] = "home";
-            // $drives['play']['description'] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,";
-            // $drives['image_name'] = 'Cleveland_Browns';
 
             $toHomeFirstHalf = 0;
             $toHomeSecondHalf = 0;
             $toAwayFirstHalf = 0;
             $toAwaySecondHalf = 0;
+            $toHomeOt = 0;
+            $toAwayOt = 0;
             $firstHalfQuarters = [
                 "1st", "2nd"
             ];
@@ -341,9 +344,17 @@ class NflApiRepository
                 "3rd", 
                 "4th"
             ];
+            $otQuarters = [
+                "5"
+            ];
 
-            foreach ($playByPlay['drive'] as $drive){
+            $plyDataDriveForTo = $playByPlay['drive'] ?? [];
+
+            foreach ($plyDataDriveForTo as $drive){
                 $plays = $drive['play'] ?? [];
+                if (isset($plays['id'])) {
+                    $plays = [$plays];
+                }
 
                 foreach ($plays as $play){
 
@@ -351,7 +362,6 @@ class NflApiRepository
                     $desc = $play['description'];
 
 			        if ($play['type'] == 'TO' && $possessionTeam == 'hometeam'){
-
                         $quarter = explode("-", $play['minute'])[1] ?? null;
 
                         if ($quarter) {
@@ -366,6 +376,10 @@ class NflApiRepository
                                 if (in_array($quarter, $secondHalfQuarters)) {
                                     $toHomeSecondHalf++;
                                 }
+
+                                if (in_array($quarter, $otQuarters)) {
+                                    $toHomeOt++;
+                                }
                             } else {
                                 if (in_array($quarter, $firstHalfQuarters)) {
                                     $toAwayFirstHalf++;
@@ -373,6 +387,10 @@ class NflApiRepository
 
                                 if (in_array($quarter, $secondHalfQuarters)) {
                                     $toAwaySecondHalf++;
+                                }
+
+                                if (in_array($quarter, $otQuarters)) {
+                                    $toAwayOt++;
                                 }
                             }
                         }
@@ -393,6 +411,10 @@ class NflApiRepository
                                 if (in_array($quarter, $secondHalfQuarters)) {
                                     $toAwaySecondHalf++;
                                 }
+
+                                if (in_array($quarter, $otQuarters)) {
+                                    $toAwayOt++;
+                                }
                             } else {
                                 if (in_array($quarter, $firstHalfQuarters)) {
                                     $toHomeFirstHalf++;
@@ -400,6 +422,10 @@ class NflApiRepository
 
                                 if (in_array($quarter, $secondHalfQuarters)) {
                                     $toHomeSecondHalf++;
+                                }
+
+                                if (in_array($quarter, $otQuarters)) {
+                                    $toHomeOt++;
                                 }
                             }
                         }
@@ -410,11 +436,13 @@ class NflApiRepository
             $to = [
                 'home' => [
                     'firstHalf' => $toHomeFirstHalf,
-                    'secondHalf' => $toHomeSecondHalf
+                    'secondHalf' => $toHomeSecondHalf,
+                    'ot' => $toHomeOt
                 ],
                 'away' => [
                     'firstHalf' => $toAwayFirstHalf,
-                    'secondHalf' => $toAwaySecondHalf
+                    'secondHalf' => $toAwaySecondHalf,
+                    'ot' => $toAwayOt
                 ]
             ];
 

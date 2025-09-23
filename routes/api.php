@@ -66,6 +66,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/match-cast-box/{matchId}/{week}', [NflController::class, 'matchCastBox']);
         Route::get('/roosters/{teamId}', [NflController::class, 'getRoosters']);
         Route::get('/playbyplay/{contestId}', [NflController::class, 'getPlayByPlay']);
+        Route::get('/rankings/{season}', [NflController::class, 'getRankings']);
     });
 
     // Auth routes

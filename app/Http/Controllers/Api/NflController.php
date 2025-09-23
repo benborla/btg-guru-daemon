@@ -91,7 +91,8 @@ class NflController extends Controller
             'standings' => $teamStandings ?? [],
             'divisionStandings' => $this->repository->getTeamStandingsDivision($teamId),
             'last5Form' => $teamLast5Form ?? [],
-            'customStandings' => $customStandings
+            'customStandings' => $customStandings,
+            'teamRank' => $this->repository->getCurrentTeamRank($season,$teamId)
         ]);
     }
 
@@ -243,5 +244,12 @@ class NflController extends Controller
         return response()->json([
             'data' => $this->playByPlayRepository->getPlayByPlay($contestId)
         ]);
+    }
+
+    public function getRankings($season)
+    {
+        return response()->json(
+            $this->repository->getRankings($season)
+        );
     }
 }
