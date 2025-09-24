@@ -1112,7 +1112,9 @@ class NflScoresRepository
                 'passing_agt' => $allMatchesDataComputation['passing_agt'],
                 'rushings_agt' => $allMatchesDataComputation['rushings_agt'],
                 'interceptions_for' => $allMatchesDataComputation['interceptions_for'],
-                
+                'kick_returns_for' => $allMatchesDataComputation['kick_returns_for'],
+                'kick_returns_yards_for' => $allMatchesDataComputation['kick_returns_yards_for'],
+                'kick_returns_for_avg' => $allMatchesDataComputation['kick_returns_for_avg'],
             ];
         });
 
@@ -1176,6 +1178,9 @@ class NflScoresRepository
             $interceptionsForRank = $teamScores->sortBy([
                 ['interceptions_for', 'desc']
             ]);
+            $kickReturnsForRank = $teamScores->sortBy([
+                ['kick_returns_for_avg', 'desc']
+            ]);
 
 
             $avgForRankFor = $this->getTeamRank($avgRankFor, $id);
@@ -1195,6 +1200,7 @@ class NflScoresRepository
             $rushingsAgtrank = $this->getTeamRank($rushingsAgtrank, $id);
             $sacksForRank = $this->getTeamRank($sacksForRank, $id);
             $interceptionsForRank = $this->getTeamRank($interceptionsForRank, $id);
+            $kickReturnsForRank = $this->getTeamRank($kickReturnsForRank, $id);
 
             $team['avg_for_rank'] = Number::ordinal($avgForRankFor + 1);
             $team['avg_passing_rank'] = Number::ordinal($avgPassingRank + 1);
@@ -1213,9 +1219,11 @@ class NflScoresRepository
             $team['rushings_agt_rank'] = Number::ordinal($rushingsAgtrank + 1);
             $team['sacks_for_rank'] = Number::ordinal($sacksForRank + 1);
             $team['interceptions_for_rank'] = Number::ordinal($interceptionsForRank + 1);
+            $team['kick_returns_for_rank'] = Number::ordinal($kickReturnsForRank + 1);
 
             return $team;
         });
+
 
         return $withRankings;
     }
@@ -1289,9 +1297,31 @@ class NflScoresRepository
             $aRushing = collect($rushing['awayteam']['player'] ?? []);
             $hTdTot = $hRecPlayerTd->sum('receiving_touch_downs') + $hRushing->sum('rushing_touch_downs');
             $aTdTot = $aRecPlayerTd->sum('receiving_touch_downs') + $aRushing->sum('rushing_touch_downs');
+            $kickReturns = $score['kick_returns'] ?? [];
+
+            $hKickReturns = $kickReturns['hometeam']['player'] ?? [];
+            $aKickReturns = $kickReturns['awayteam']['player'] ?? [];
+
+            if (isset($hKickReturns['id'])) {
+                $hKickReturns = [$hKickReturns];
+            }
+
+            if (isset($aKickReturns['id'])) {
+                $aKickReturns = [$aKickReturns];
+            }
+
+            $hKickReturns = collect($hKickReturns);
+            $aKickReturns = collect($aKickReturns);
+
+            $totalHKickReturns = $hKickReturns->sum('total');
+            $totalAKickReturns = $aKickReturns->sum('total');
+            $totalHKickReturnsYards = $hKickReturns->sum('yards');
+            $totalAKickReturnsYards = $aKickReturns->sum('yards');
+
             
             // check for home if team is home
             if ($score['isHome']) {
+
 
                 return [
                     'passing' => $homeTeamStats['passing']['total'] ?? 0,
@@ -1312,6 +1342,8 @@ class NflScoresRepository
                     'sacks_agt' => $awayTeamStats['sacks']['total'] ?? 0,
                     'interceptions_for' => $homeTeamStats['interceptions']['total'] ?? 0,
                     'interceptions_agt' => $awayTeamStats['interceptions']['total'] ?? 0,
+                    'kick_returns_for' => $totalHKickReturns,
+                    'kick_returns_yards_for' => $totalHKickReturnsYards,
                 ];
             }
 
@@ -1337,6 +1369,8 @@ class NflScoresRepository
                 'sacks_agt' => $homeTeamStats['sacks']['total'] ?? 0,
                 'interceptions_for' => $awayTeamStats['interceptions']['total'] ?? 0,
                 'interceptions_agt' => $homeTeamStats['interceptions']['total'] ?? 0,
+                'kick_returns_for' => $totalAKickReturns,
+                'kick_returns_yards_for' => $totalAKickReturnsYards,
             ];
         });
 
@@ -1345,7 +1379,10 @@ class NflScoresRepository
         $redZonePercent = ($redzoneCtdAvg / $redzoneAttemptsAvg) * 100;
         $tdRec = number_format($avg->sum('rec_player_td'), 1);
         $tdRushings = number_format($avg->sum('rushings_player_td'), 1);
-        
+
+        $kickReturnsForTotal = number_format($avg->sum('kick_returns_for'), 0);
+        $kickReturnsYardsTotal = number_format($avg->sum('kick_returns_yards_for'), 0);
+        $kickReturnsForAvg = number_format($kickReturnsYardsTotal / $kickReturnsForTotal, 1);
 
         return [
             'passing' => number_format($avg->avg('passing'), 1),
@@ -1369,6 +1406,9 @@ class NflScoresRepository
             'rushings_agt' => number_format($avg->avg('rushings_agt'), 1),
             'interceptions_for' => number_format($avg->avg('interceptions_for'), 1),
             'interceptions_agt' => number_format($avg->avg('interceptions_agt'), 1),
+            'kick_returns_for' => $kickReturnsForTotal,
+            'kick_returns_yards_for' => $kickReturnsYardsTotal,
+            'kick_returns_for_avg' => $kickReturnsForAvg,
         ];
     }
 }
