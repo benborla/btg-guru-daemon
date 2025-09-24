@@ -45,14 +45,24 @@ nfl-live:
 	php artisan nfl:live-update-scores > storage/logs/nfl_live_update.log 2>&1
 nfl-update-live-scores:
 	php artisan nfl:live-update-scores
+afl-update-live-scores:
+	php artisan afl:live-update-scores
 
 test-nfl-reset-current-game-scores:
 	php artisan nfl:current-game-scores-reset-test
+
+test-afl-reset-current-game-scores:
+	php artisan afl:current-game-scores-reset --test
 
 docker-nfl-update-live-scores:
 	docker compose exec app php artisan nfl:live-update-scores 
 docker-nfl-update-live-scores-test:
 	docker compose exec app php artisan nfl:live-update-scores --test
+
+docker-afl-update-live-scores:
+	docker compose exec app php artisan afl:live-update-scores
+docker-afl-update-live-scores-test:
+	docker compose exec app php artisan afl:live-update-scores --test
 docker-test-nfl-reset-current-game-scores:
 	docker compose exec app php artisan nfl:current-game-scores-reset-test 
 docker-nfl-live:

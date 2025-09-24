@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class NflGame extends Model
 {
@@ -104,42 +105,40 @@ class NflGame extends Model
         'current_quarter',
     ];
 
+    protected $validQuarters = [
+       '1st',
+       '2nd',
+       '3rd',
+       '4th',
+       'OT',
+       'After Over Time'
+    ];
+
+    const FIRST_QUARTER = '1st Quarter';
+    const SECOND_QUARTER = '2nd Quarter';
+    const THIRD_QUARTER = '3rd Quarter';
+    const FOURTH_QUARTER = '4th Quarter';
+    const OVERTIME = 'Overtime';
+    const AFTER_OVER_TIME = 'After Over Time';
+
     public function getCurrentQuarterAttribute()
     {
        $events = $this->events ?? [];
+       $validQuarters = $this->validQuarters;
 
-       if (empty($events)) {
-         return null;
-       }
+       $status = $this->status ?? null;
+       $quarter = explode(" ", $status)[0] ?? '';
 
-       $firstQuarter = $events['firstquarter'] ?? [];
-       $secondQuarter = $events['secondquarter'] ?? [];
-       $thirdQuarter = $events['thirdquarter'] ?? [];
-       $fourthQuarter = $events['fourthquarter'] ?? [];
-       $overtime = $events['overtime'] ?? [];
-
-
-       if (!empty($overtime)) {
+       if ($status == 'After Over Time') {
          return 'OT';
        }
 
-       if (!empty($fourthQuarter)) {
-         return '4th';
+       $joinQuarters = implode(" ", $validQuarters);
+       $isInJoinQuarters = Str::contains($joinQuarters, $quarter);
+
+       if (in_array($quarter, $validQuarters) || $isInJoinQuarters) {
+         return $quarter;
        }
-
-       if (!empty($thirdQuarter)) {
-         return '3rd';
-       }
-
-       if (!empty($secondQuarter)) {
-         return '2nd';
-       }
-
-
-       if (!empty($firstQuarter)) {
-         return '1st';
-       }
-
 
        return null;
     }
@@ -245,6 +244,8 @@ class NflGame extends Model
     public function getEventsSortedAttribute()
     {
         $events =  $this->events ?? [];
+        $status = $this->getCurrentGameStatusAttribute();
+
         $emptyEvent = [
            "type" => "-",
            "team" => "-",
@@ -258,8 +259,8 @@ class NflGame extends Model
 
         $sorted = [];
 
-        if (!empty($events['overtime'])) {
-          $ot = collect($events['overtime']['event'])->reverse();
+        if (!empty($events['overtime']) || $status == self::AFTER_OVER_TIME) {
+          $ot = collect($events['overtime']['event'] ?? [])->reverse();
 
           if (isset($ot['type'])) {
             $ot = [$ot];
@@ -272,12 +273,12 @@ class NflGame extends Model
             'short' => 'OT',
             'events' => $ot,
             'start_name' => 'Start of Overtime',
-            'end_name' => $this->status == 'After Over Time' ? 'End of Overtime' : '-',
+            'end_name' => $status == self::AFTER_OVER_TIME ? 'End of Overtime' : '-',
           ];
         }
 
-        if(!empty($events['fourthquarter'])) {
-          $q4 = collect($events['fourthquarter']['event'])->reverse();
+        if(!empty($events['fourthquarter']) || $status == self::FOURTH_QUARTER) {
+          $q4 = collect($events['fourthquarter']['event'] ?? [])->reverse();
 
           if (isset($q4['type'])) {
             $q4 = [$q4];
@@ -290,7 +291,7 @@ class NflGame extends Model
             'short' => '4th',
             'events' => $q4,
             'start_name' => 'Start of 4th Quarter',
-            'end_name' =>  !empty($events['overtime']) ? 'End of 4th Quarter' : ($this->status == 'Final' ? 'Final' : '-'),
+            'end_name' => ($status == self::AFTER_OVER_TIME) ? 'End of 4th Quarter' : ($this->status == 'Final' ? 'Final' : '-'),
           ];
         } else {
           // must still show an empty entry
@@ -308,8 +309,8 @@ class NflGame extends Model
           }
         }
 
-        if (!empty($events['thirdquarter'])) {
-          $q3 = collect($events['thirdquarter']['event'])->reverse();
+        if (!empty($events['thirdquarter']) || $status == self::THIRD_QUARTER) {
+          $q3 = collect($events['thirdquarter']['event'] ?? [])->reverse();
 
           if (isset($q3['type'])) {
             $q3 = [$q3];
@@ -322,12 +323,12 @@ class NflGame extends Model
             'short' => '3rd',
             'events' => $q3,
             'start_name' => 'Start of 3rd Quarter',
-	    'end_name' => $events['fourthquarter'] && $this->status == 'Final' ? 'End of 3rd Quarter' :  '-'
-	  ];
+            'end_name' => ($this->status == 'Final' || $status == self::FOURTH_QUARTER) ? 'End of 3rd Quarter' :  '-'
+          ];
         }
 
-        if (!empty($events['secondquarter'])) {
-          $q2 = collect($events['secondquarter']['event'])->reverse();
+        if (!empty($events['secondquarter']) || $status == self::SECOND_QUARTER) {
+          $q2 = collect($events['secondquarter']['event'] ?? [])->reverse();
 
           if (isset($q2['type'])) {
             $q2 = [$q2];
@@ -340,12 +341,12 @@ class NflGame extends Model
             'short' => '2nd',
             'events' => $q2,
             'start_name' => 'Start of 2nd Quarter',
-            'end_name' => !empty($events['thirdquarter']) ? 'End of 2nd Quarter' : '-',
+            'end_name' => ($status == self::THIRD_QUARTER) ? 'End of 2nd Quarter' : '-',
           ];
         }
 
-        if (!empty($events['firstquarter'])) {
-          $q1 = collect($events['firstquarter']['event'])->reverse();
+        if (!empty($events['firstquarter']) || $status == self::FIRST_QUARTER) {
+          $q1 = collect($events['firstquarter']['event'] ?? [])->reverse();
 
           if (isset($q1['type'])) {
             $q1 = [$q1];
@@ -357,7 +358,7 @@ class NflGame extends Model
             'name' => '1st Quarter',
             'short' => '1st',
             'start_name' => 'Start of 1st Quarter',
-            'end_name' => !empty($events['secondquarter']) ? 'End of 1st Quarter' : '',
+            'end_name' => ($status == self::SECOND_QUARTER) ? 'End of 1st Quarter' : '',
             'events' => $q1
           ];
         }
