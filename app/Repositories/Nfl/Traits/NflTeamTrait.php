@@ -237,4 +237,41 @@ trait NflTeamTrait
         $teams = collect(json_decode($this->teamAbrv, true));
         return $teams->where('ID', $teamId)->first();
     }
+
+    public function getPuntReturns($scoreData)
+    {
+        $totalHPuntingReturns = 0;
+        $totalAPuntingReturns = 0;
+        $totalHPuntingReturnsYards = 0;
+        $totalAPuntingReturnsYards = 0;
+
+        if (isset($scoreData['punt_returns'])) {
+            $puntingReturns = $scoreData['punt_returns'] ?? [];
+            $hPuntingReturns = $puntingReturns['hometeam']['player'] ?? [];
+            $aPuntingReturns = $puntingReturns['awayteam']['player'] ?? [];
+
+            if (isset($hPuntingReturns['id'])) {
+                $hPuntingReturns = [$hPuntingReturns];
+            }
+
+            if (isset($aPuntingReturns['id'])) {
+                $aPuntingReturns = [$aPuntingReturns];
+            }
+
+            $hPuntingReturns = collect($hPuntingReturns);
+            $aPuntingReturns = collect($aPuntingReturns);
+
+            $totalHPuntingReturns = $hPuntingReturns->sum('total');
+            $totalAPuntingReturns = $aPuntingReturns->sum('total');
+            $totalHPuntingReturnsYards = $hPuntingReturns->sum('yards');
+            $totalAPuntingReturnsYards = $aPuntingReturns->sum('yards');
+        }
+
+        return [
+            'totalHPuntingReturns' => $totalHPuntingReturns,
+            'totalAPuntingReturns' => $totalAPuntingReturns,
+            'totalHPuntingReturnsYards' => $totalHPuntingReturnsYards,
+            'totalAPuntingReturnsYards' => $totalAPuntingReturnsYards,
+        ];
+    }
 }
