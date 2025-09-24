@@ -197,12 +197,12 @@ class AflController extends Controller
         
         if (!empty($apiResponse)) {
             $response = process_match_data($apiResponse, $matchId, $this->aflService);
-	        $response['round'] =  $this->aflService->aflPlayOffMappingNames($response['round'])['full_name'] ?? $response['round'];
+	        $response['round'] =  $this->aflService->aflPlayOffMappingNames($response['round'])['full_name'] ?? "Rd. " . $response['round'];
         } else {
              return response()->json([
                     'match_date' => $data->date,
                     'source' => 'proxy_server',
-                    'round' => $this->aflService->aflPlayOffMappingNames($data->round)['full_name'] ?? $data->round,
+                    'round' => $this->aflService->aflPlayOffMappingNames($data->round)['full_name'] ?? "Rd. " . $data->round,
                     '@status' => $data->status,
                     '@date' => $data->date,
                     '@time' => $data->time,
