@@ -186,8 +186,14 @@ class NflApiRepository
             foreach ($item['week'] as $week){
                 
                 foreach($week['matches'] as $match){
+
+		    $matches = $match['match'];
+
+		    if (isset($matches['contestID'])) {
+		       $matches = [$matches]; 
+		    }
                     
-                    foreach ($match['match'] as $b){
+                    foreach ($matches as $b){
                         $dateTimeUtc = Carbon::parse($b['datetime_utc'], 'UTC')->setTimeZone('Australia/Sydney')->format('Y-m-d');
 
                         $dateToday = Carbon::parse(date('Y-m-d'));
@@ -207,7 +213,9 @@ class NflApiRepository
 
         $contestIds = collect($data->first())['matches'];
         $contestIds = collect($contestIds)->flatMap(function($item){
-            return collect($item['match'])->map(function($a){
+
+            $matches = isset($item['match']['contestID']) ? [$item['match']]: $item['match'];
+            return collect($matches)->map(function($a){
                 return $a['contestID'];
             });
         });
