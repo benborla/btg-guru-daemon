@@ -1109,6 +1109,8 @@ class NflScoresRepository
                 'def_passing_allowed_agt' => $allMatchesDataComputation['def_passing_allowed_agt'],
                 'def_rushing_allowed_agt' => $allMatchesDataComputation['def_rushing_allowed_agt'],
                 'sacks_agt' => $allMatchesDataComputation['sacks_agt'],
+                'passing_agt' => $allMatchesDataComputation['passing_agt'],
+                'rushings_agt' => $allMatchesDataComputation['rushings_agt'],
             ];
         });
 
@@ -1121,7 +1123,7 @@ class NflScoresRepository
             ]);
 
             $avgRankAgt = $teamScores->sortBy([
-                ['avg_agt', 'desc']
+                ['avg_agt', 'asc']
             ]);
             $avgRankPassing = $teamScores->sortBy([
                 ['avg_passing', 'desc']
@@ -1160,6 +1162,12 @@ class NflScoresRepository
             $sacksAgtrank = $teamScores->sortBy([
                 ['sacks_agt', 'desc']
             ]);
+            $passingAgtrank = $teamScores->sortBy([
+                ['passing_agt', 'asc']
+            ]);
+            $rushingsAgtrank = $teamScores->sortBy([
+                ['rushings_agt', 'asc']
+            ]);
 
 
             $avgForRankFor = $this->getTeamRank($avgRankFor, $id);
@@ -1175,6 +1183,8 @@ class NflScoresRepository
             $defPassingAllowedRank = $this->getTeamRank($defPassingAllowedRank, $id);
             $defRushingAllowedRank = $this->getTeamRank($defRushingAllowedRank, $id);
             $sacksAgtrank = $this->getTeamRank($sacksAgtrank, $id);
+            $passingAgtrank = $this->getTeamRank($passingAgtrank, $id);
+            $rushingsAgtrank = $this->getTeamRank($rushingsAgtrank, $id);
 
             $team['avg_for_rank'] = Number::ordinal($avgForRankFor + 1);
             $team['avg_passing_rank'] = Number::ordinal($avgPassingRank + 1);
@@ -1189,6 +1199,8 @@ class NflScoresRepository
             $team['def_passing_allowed_agt_rank'] = Number::ordinal($defPassingAllowedRank + 1);
             $team['def_rushing_allowed_agt_rank'] = Number::ordinal($defRushingAllowedRank + 1);
             $team['sacks_agt_rank'] = Number::ordinal($sacksAgtrank + 1);
+            $team['passing_agt_rank'] = Number::ordinal($passingAgtrank + 1);
+            $team['rushings_agt_rank'] = Number::ordinal($rushingsAgtrank + 1);
 
             return $team;
         });
@@ -1271,7 +1283,9 @@ class NflScoresRepository
 
                 return [
                     'passing' => $homeTeamStats['passing']['total'] ?? 0,
+                    'passing_agt' => $awayTeamStats['passing']['total'] ?? 0,
                     'rushings' => $homeTeamStats['rushings']['total'] ?? 0,
+                    'rushings_agt' => $awayTeamStats['rushings']['total'] ?? 0,
                     'for' => $score['home_score'],
                     'agt' => $score['away_score'],
                     'penalties' => $hPenaltyValue,
@@ -1290,7 +1304,9 @@ class NflScoresRepository
             // by deafult get values from away team
             return [
                 'passing' => $awayTeamStats['passing']['total'] ?? 0,
+                'passing_agt' => $homeTeamStats['passing']['total'] ?? 0,
                 'rushings' => $awayTeamStats['rushings']['total'] ?? 0,
+                'rushings_agt' => $homeTeamStats['rushings']['total'] ?? 0,
                 'for' => $score['away_score'],
                 'agt' => $score['home_score'],
                 'penalties' => $aPenaltyValue,
@@ -1330,6 +1346,8 @@ class NflScoresRepository
             'def_passing_allowed_agt' => number_format($avg->avg('def_passing_allowed_agt'), 1),
             'def_rushing_allowed_agt' => number_format($avg->avg('def_rushing_allowed_agt'), 1),
             'sacks_agt' => number_format($avg->avg('sacks_agt'), 1),
+            'passing_agt' => number_format($avg->avg('passing_agt'), 1),
+            'rushings_agt' => number_format($avg->avg('rushings_agt'), 1),
         ];
     }
 }
