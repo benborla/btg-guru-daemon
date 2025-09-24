@@ -48,6 +48,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/test', [AflController::class, 'liveTest']);
         Route::get('/teams', [AflController::class, 'teamsInfo']);
         Route::get('/current-live-games', [AflController::class, 'currentLiveGames']);
+        Route::get('/round-aliases', [AflController::class, 'roundAlias']);
     });
 
     Route::prefix('nfl')->group(function () {

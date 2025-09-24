@@ -296,4 +296,11 @@ class AflController extends Controller
             'data' => $upcomingGameDates
         ]);
     }
+
+    public function roundAlias()
+    {
+        return response()->json([
+            'data' => $this->aflService->getRoundAliases()
+        ]);
+    }
 }
