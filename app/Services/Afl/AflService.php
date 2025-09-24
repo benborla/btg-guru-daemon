@@ -229,9 +229,9 @@ class AflService
         return $teams;
     }
 
-    public function aflPlayOffMappingNames($round)
+    public function getRoundAliases()
     {
-        $mapping =  [
+        return [
             '25' => [
                 'name' => 'FW',
                 'full_name' => 'Finals Week 1',
@@ -253,6 +253,11 @@ class AflService
                 'bg_color' => '#0d6efd'
             ],
         ];
+    }
+
+    public function aflPlayOffMappingNames($round)
+    {
+        $mapping =  $this->getRoundAliases();
 
         return isset($mapping[$round]) ? $mapping[$round] : $round;
     }
