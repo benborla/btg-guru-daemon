@@ -274,4 +274,98 @@ trait NflTeamTrait
             'totalAPuntingReturnsYards' => $totalAPuntingReturnsYards,
         ];
     }
+
+    public function getPunting($scoreData)
+    {
+        $totalHPunting = 0;
+        $totalAPunting = 0;
+        $totalHPuntingYards = 0;
+        $totalAPuntingYards = 0;
+
+        if (isset($scoreData['punting'])) {
+            $punting = $scoreData['punting'] ?? [];
+            $hPunting = $punting['hometeam']['player'] ?? [];
+            $aPunting = $punting['awayteam']['player'] ?? [];
+
+            if (isset($hPunting['id'])) {
+                $hPunting = [$hPunting];
+            }
+
+            if (isset($aPunting['id'])) {
+                $aPunting = [$aPunting];
+            }
+
+            $hPunting = collect($hPunting);
+            $aPunting = collect($aPunting);
+
+            $totalHPunting = $hPunting->sum('total');
+            $totalAPunting = $aPunting->sum('total');
+            $totalHPuntingYards = $hPunting->sum('yards');
+            $totalAPuntingYards = $aPunting->sum('yards');
+        }
+
+        return [
+            'totalHPunting' => $totalHPunting,
+            'totalAPunting' => $totalAPunting,
+            'totalHPuntingYards' => $totalHPuntingYards,
+            'totalAPuntingYards' => $totalAPuntingYards,
+        ];
+    }
+
+    public function getKicking($scoreData)
+    {
+
+      $kicking = $scoreData['kicking'] ?? [];
+      $hKicking = $kicking['hometeam']['player'] ?? [];
+      $aKicking = $kicking['awayteam']['player'] ?? [];
+
+      if (isset($hKicking['id'])) {
+        $hKicking = [$hKicking];
+      }
+
+      if (isset($aKicking['id'])) {
+        $aKicking = [$aKicking];
+      }
+
+      $hKicking = collect($hKicking);
+      $aKicking = collect($aKicking);
+
+      $a = $hKicking->map(function($item){
+        $fg = $item['field_goals'] ?? 0;
+        $xp = $item['extra_point'] ?? 0;
+
+        return [
+          ...$item,
+          'fg' => $fg,
+          'fg_numberator' => $item['field_goals'] ? (int)explode('/', $item['field_goals'])[0] : 0,
+          'fg_denominator' => $item['field_goals'] ? (int)explode('/', $item['field_goals'])[1] : 0,
+          'xp' => $xp,
+          'xp_numberator' => $item['extra_point'] ? (int)explode('/', $item['extra_point'])[0] : 0,
+          'xp_denominator' => $item['extra_point'] ? (int)explode('/', $item['extra_point'])[1] : 0,
+          'name' => $item['name'],
+        ]; 
+      });
+      $b = $aKicking->map(function($item){
+        $fg = $item['field_goals'] ?? 0;
+        $xp = $item['extra_point'] ?? 0;
+
+        return [
+          ...$item,
+          'fg' => $fg,
+          'fg_numberator' => $item['field_goals'] ? (int)explode('/', $item['field_goals'])[0] : 0,
+          'fg_denominator' => $item['field_goals'] ? (int)explode('/', $item['field_goals'])[1] : 0,
+          'xp' => $xp,
+          'xp_numberator' => $item['extra_point'] ? (int)explode('/', $item['extra_point'])[0] : 0,
+          'xp_denominator' => $item['extra_point'] ? (int)explode('/', $item['extra_point'])[1] : 0,
+          'name' => $item['name'],
+        ]; 
+      });
+
+
+
+      return [
+        'totalHKicking' => $a,
+        'totalAKicking' => $b,
+      ];
+    }
 }

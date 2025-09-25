@@ -859,7 +859,7 @@ class NflScoresRepository
     {
         $games=  $this->apiRepository->getCurrentScheduledGames();
 
-        return $games->map(function($game) {
+        $data =  $games->map(function($game) {
 
             if ($game['status'] == 'After Over Time') {
                 $game['status'] = '(OT)';
@@ -873,6 +873,10 @@ class NflScoresRepository
 
             return $game;
         });
+
+        $data = $data->sortBy('game_date')->values();
+
+        return $data;
     }
 
     public function getScoreBoardDataFromApi($chronological = null)
@@ -1121,6 +1125,11 @@ class NflScoresRepository
                 'punt_returns_for' => $allMatchesDataComputation['punt_returns_for'],
                 'punt_returns_yards_for' => $allMatchesDataComputation['punt_returns_yards_for'],
                 'punt_returns_for_avg' => $allMatchesDataComputation['punt_returns_for_avg'],
+                'punting_for' => $allMatchesDataComputation['punting_for'],
+                'punting_yards_for' => $allMatchesDataComputation['punting_yards_for'],
+                'punting_for_avg' => $allMatchesDataComputation['punting_for_avg'],
+                'kickers_for' => $allMatchesDataComputation['kickers_for'],
+                'kickers_agt' => $allMatchesDataComputation['kickers_agt'],
             ];
         });
 
@@ -1190,6 +1199,9 @@ class NflScoresRepository
             $puntReturnsForRank = $teamScores->sortBy([
                 ['punt_returns_for_avg', 'desc']
             ]);
+            $puntingForRank = $teamScores->sortBy([
+                ['punting_for_avg', 'desc']
+            ]);
 
 
             $avgForRankFor = $this->getTeamRank($avgRankFor, $id);
@@ -1211,6 +1223,7 @@ class NflScoresRepository
             $interceptionsForRank = $this->getTeamRank($interceptionsForRank, $id);
             $kickReturnsForRank = $this->getTeamRank($kickReturnsForRank, $id);
             $puntReturnsForRank = $this->getTeamRank($puntReturnsForRank, $id);
+            $puntingForRank = $this->getTeamRank($puntingForRank, $id);
 
             $team['avg_for_rank'] = Number::ordinal($avgForRankFor + 1);
             $team['avg_passing_rank'] = Number::ordinal($avgPassingRank + 1);
@@ -1231,6 +1244,7 @@ class NflScoresRepository
             $team['interceptions_for_rank'] = Number::ordinal($interceptionsForRank + 1);
             $team['kick_returns_for_rank'] = Number::ordinal($kickReturnsForRank + 1);
             $team['punt_returns_for_rank'] = Number::ordinal($puntReturnsForRank + 1);
+            $team['punting_for_rank'] = Number::ordinal($puntingForRank + 1);
 
             return $team;
         });
@@ -1332,6 +1346,11 @@ class NflScoresRepository
             $totalAKickReturnsYards = $aKickReturns->sum('yards');
 
             $puntReturns = $this->getPuntReturns($score);
+            $punting = $this->getPunting($score);
+            $kicking = $this->getKicking($score);
+
+            $hKicking = $kicking['totalHKicking'];
+            $aKicking = $kicking['totalAKicking'];
             
             // check for home if team is home
             if ($score['isHome']) {
@@ -1359,6 +1378,10 @@ class NflScoresRepository
                     'kick_returns_yards_for' => $totalHKickReturnsYards,
                     'punt_returns_for' => $puntReturns['totalHPuntingReturns'],
                     'punt_returns_yards_for' => $puntReturns['totalHPuntingReturnsYards'],
+                    'punting_for' => $punting['totalHPunting'],
+                    'punting_yards_for' => $punting['totalHPuntingYards'],
+                    'kicking_for' => $hKicking,
+                    'kicking_agt' => $aKicking,
                 ];
             }
 
@@ -1388,6 +1411,10 @@ class NflScoresRepository
                 'kick_returns_yards_for' => $totalAKickReturnsYards,
                 'punt_returns_for' => $puntReturns['totalAPuntingReturns'],
                 'punt_returns_yards_for' => $puntReturns['totalAPuntingReturnsYards'],
+                'punting_for' => $punting['totalAPunting'],
+                'punting_yards_for' => $punting['totalAPuntingYards'],
+                'kicking_for' => $aKicking,
+                'kicking_agt' => $hKicking,
             ];
         });
 
@@ -1409,6 +1436,68 @@ class NflScoresRepository
             $puntReturnsForAvg = number_format($puntReturnsYardsTotal / $puntReturnsForTotal, 1);
         }
 
+        $puntingForTotal = number_format($avg->sum('punting_for'), 0);
+        $puntingYardsTotal = number_format($avg->sum('punting_yards_for'), 0);
+        $puntingForAvg = 0;
+
+        if ($puntingForTotal > 0 && $puntingYardsTotal > 0) {
+            $puntingForAvg = number_format($puntingYardsTotal / $puntingForTotal, 1);
+        }
+
+        $kickersFor = $avg->flatMap(function($item) {
+            $a = $item['kicking_for'];
+            return $a;
+        });
+        
+        $kickersFor = $kickersFor->groupBy('name')->map(function($item) {
+            $sum =  $item->sum('fg_numberator');
+            $denominator = $item->sum('fg_denominator');
+            $xpSumNumator = $item->sum('xp_numberator');
+            $xpDenominator = $item->sum('xp_denominator');
+            $fgPercent = $sum > 0 && $denominator > 0 ? ($sum / $denominator) * 100 : 0;
+            $xpPercent = $xpSumNumator > 0 && $xpDenominator > 0 ? ($xpSumNumator / $xpDenominator) * 100 : 0;
+            $fgPercent = number_format($fgPercent, 0);
+            $xpPercent = number_format($xpPercent, 0);
+
+            return [
+                'scores' => $item,
+                'name' => $item->first()['name'],
+                'id' => $item->first()['id'],
+                'fg_sum' => $sum,
+                'fg_denominator' => $denominator,
+                'fg_percent' => $fgPercent,
+                'xp_sum' => $xpSumNumator,
+                'xp_denominator' => $xpDenominator,
+                'xp_percent' => $xpPercent,
+            ];
+        });
+
+        $kickersAgt = $avg->flatMap(function($item) {
+            $a = $item['kicking_agt'];
+            return $a;
+        });
+        
+        $kickersAgt = $kickersAgt->groupBy('name')->map(function($item) {
+            $sum =  $item->sum('fg_numberator');
+            $denominator = $item->sum('fg_denominator');
+            $xpSumNumator = $item->sum('xp_numberator');
+            $xpDenominator = $item->sum('xp_denominator');
+            $fgPercent = $sum > 0 && $denominator > 0 ? ($sum / $denominator) * 100 : 0;
+            $xpPercent = $xpSumNumator > 0 && $xpDenominator > 0 ? ($xpSumNumator / $xpDenominator) * 100 : 0;
+            $fgPercent = number_format($fgPercent, 0);
+            $xpPercent = number_format($xpPercent, 0);
+
+
+            return [
+                'name' => $item->first()['name'],
+                'fg_sum' => $sum,
+                'fg_denominator' => $denominator,
+                'fg_percent' => $fgPercent,
+                'xp_sum' => $xpSumNumator,
+                'xp_denominator' => $xpDenominator,
+                'xp_percent' => $xpPercent,
+            ];
+        });
 
         return [
             'passing' => number_format($avg->avg('passing'), 1),
@@ -1438,6 +1527,11 @@ class NflScoresRepository
             'punt_returns_for' => $puntReturnsForTotal,
             'punt_returns_yards_for' => $puntReturnsYardsTotal,
             'punt_returns_for_avg' => $puntReturnsForAvg,
+            'punting_for' => $puntingForTotal,
+            'punting_yards_for' => $puntingYardsTotal,
+            'punting_for_avg' => $puntingForAvg,
+            'kickers_for' => $kickersFor,
+            'kickers_agt' => $kickersAgt,
         ];
     }
 }
