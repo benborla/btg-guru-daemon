@@ -1365,6 +1365,7 @@ class NflScoresRepository
                     'penalties' => $hPenaltyValue,
                     'penalties_yrds' => $hPenaltyYards,
                     'redzone_cttd' => $hCttd,
+                    'redzone_attempts' => $hAttempts,
                     'rec_player_td' => $hRecPlayerTd->sum('receiving_touch_downs'),
                     'rushings_player_td' => $hRushing->sum('rushing_touch_downs'),
                     'td_total' => $hTdTot,
