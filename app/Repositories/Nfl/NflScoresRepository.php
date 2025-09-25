@@ -1448,6 +1448,7 @@ class NflScoresRepository
             $a = $item['kicking_for'];
             return $a;
         });
+
         
         $kickersFor = $kickersFor->groupBy('name')->map(function($item) {
             $sum =  $item->sum('fg_numberator');
@@ -1461,8 +1462,9 @@ class NflScoresRepository
 
             return [
                 'scores' => $item,
-                'name' => $item->first()['name'],
-                'id' => $item->first()['id'],
+                'name' => $item->first()['name'] ?? '',
+                'id' => $item->first()['id'] ?? '',
+                'roosterData' => $item->first()['roosterData'] ?? [],
                 'fg_sum' => $sum,
                 'fg_denominator' => $denominator,
                 'fg_percent' => $fgPercent,

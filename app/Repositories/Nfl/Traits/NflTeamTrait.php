@@ -330,7 +330,11 @@ trait NflTeamTrait
       $hKicking = collect($hKicking);
       $aKicking = collect($aKicking);
 
-      $a = $hKicking->map(function($item){
+      $hRooster = $this->getTeamRoosters($scoreData['home_team_id']);
+      $aRooster = $this->getTeamRoosters($scoreData['away_team_id']);
+      
+
+      $a = $hKicking->map(function($item) use($hRooster){
         $fg = $item['field_goals'] ?? 0;
         $xp = $item['extra_point'] ?? 0;
 
@@ -343,9 +347,10 @@ trait NflTeamTrait
           'xp_numberator' => $item['extra_point'] ? (int)explode('/', $item['extra_point'])[0] : 0,
           'xp_denominator' => $item['extra_point'] ? (int)explode('/', $item['extra_point'])[1] : 0,
           'name' => $item['name'],
+          'roosterData' => $hRooster->where('id', $item['id'])->first(),
         ]; 
       });
-      $b = $aKicking->map(function($item){
+      $b = $aKicking->map(function($item) use($aRooster){
         $fg = $item['field_goals'] ?? 0;
         $xp = $item['extra_point'] ?? 0;
 
@@ -358,6 +363,7 @@ trait NflTeamTrait
           'xp_numberator' => $item['extra_point'] ? (int)explode('/', $item['extra_point'])[0] : 0,
           'xp_denominator' => $item['extra_point'] ? (int)explode('/', $item['extra_point'])[1] : 0,
           'name' => $item['name'],
+          'roosterData' => $aRooster->where('id', $item['id'])->first(),
         ]; 
       });
 
