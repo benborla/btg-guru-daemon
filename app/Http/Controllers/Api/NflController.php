@@ -249,8 +249,9 @@ class NflController extends Controller
 
     public function getRankings($season)
     {
-        return response()->json(
-            $this->repository->getRankings($season)
-        );
+        return response()->json([
+            'rankings' => $this->repository->getRankings($season),
+            'teams' => $this->repository->getTeamsInfo($season)
+        ]);
     }
 }
