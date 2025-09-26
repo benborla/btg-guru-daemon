@@ -315,9 +315,16 @@ class NflScoresRepository
             ]
         )->first();
 
-        if (empty($schedules)) {
-            return collect($this->apiRepository->getFullSchedule()['shedules']['tournament']);
-        }
+        // if (empty($schedules)) {
+        //     return collect($this->apiRepository->getFullSchedule()['shedules']['tournament']);
+        // }
+
+
+        $schedules = NflApiResponse::where([
+            ['response' , '!=', "\"null\""],
+            ['season' , '=', $season ?? date('Y')]
+        ])->get()->reverse()->first();
+
 
         return collect(json_decode($schedules->response, true)['shedules']['tournament']);
     }
