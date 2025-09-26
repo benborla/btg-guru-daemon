@@ -180,8 +180,8 @@ class NflScoresRepository
                 return collect($a['matches'])->flatMap(function($b){
                     if (isset($b['match'])) {
                         return collect($b['match'])->flatMap(function($c){
-
-		        if (!isset($c['hometeam']['id']) || !isset($c['awayteam']['id'])) {return []; }
+		                if (!isset($c['hometeam']['id']) || !isset($c['awayteam']['id'])) {return [];
+                 }
 
                         $isAfcHome = $this->isAfc($c['hometeam']['id'] ?? null);
                         $isNfcHome = $this->isNfc($c['hometeam']['id'] ?? null);
@@ -245,7 +245,11 @@ class NflScoresRepository
 
     public function getSchedules($season, $seasonTypeId, $week)
     {
-        $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
+        // $schedules = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
+       $schedules = NflApiResponse::where([
+            ['response' , '!=', "\"null\""],
+            ['season' , '=', date('Y')]
+        ])->get()->reverse()->first();
 
         $data = [];
 
@@ -253,7 +257,7 @@ class NflScoresRepository
             $data['data'] = json_decode($schedules->response,true)['shedules']['tournament'];
         }
 
-        $currentWeekSchedule = $this->getCurrentScheduledGames()->first();
+        $currentWeekSchedule = $this->apiRepository->getCurrentScheduledGames()->first();
         $currentWeek = $currentWeekSchedule->week;
         $weekInfo = $this->getWeeksInfo($currentWeekSchedule->season_type_id);
         $weekInfo = $weekInfo->where('week', $currentWeek)->first();
@@ -864,7 +868,7 @@ class NflScoresRepository
 
     public function getScoreBoardDataFromDb($chronological = false)
     {
-        $games=  $this->getCurrentScheduledGames();
+        $games=  $this->apiRepository->getCurrentScheduledGames();
 
         $data =  $games->map(function($game) {
 

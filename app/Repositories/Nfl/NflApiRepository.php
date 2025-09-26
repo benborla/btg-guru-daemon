@@ -167,13 +167,16 @@ class NflApiRepository
 
     public function getFullSchedule() 
     {
-       $data = NflApiResponse::getFirstByField('date_fetched', date('Y-m-d'));
+       $schedules = NflApiResponse::where([
+            ['response' , '!=', "\"null\""],
+            ['season' , '=', date('Y')]
+        ])->get()->reverse()->first();
 
-       if (empty($data)) {
-        return $this->fetchApiSchedules();
-       }
+    //    if (empty($data)) {
+    //     return $this->fetchApiSchedules();
+    //    }
 
-       $data = json_decode($data->response, true);
+       $data = json_decode($schedules->response, true);
 
        return $data;
     }
@@ -181,6 +184,8 @@ class NflApiRepository
     public function findTheCurrentWeek()
     {
         $data = $this->getFullSchedule();
+
+        if (empty($data)) return [];
 
         $data = collect($data['shedules']['tournament'])->map(function($item){
             foreach ($item['week'] as $week){
@@ -245,6 +250,11 @@ class NflApiRepository
     public function hasMatchToday()
     {
         $dataToday = $this->getCurrentScheduledGames();
+
+        if (empty($dataToday)) return [
+            'status' => false,
+            'contestIds' => []
+        ];
 
         $matchesStatus = $dataToday->map(function($match){
             $gameDate = Carbon::parse($match->datetime_utc, "UTC")->setTimeZone('Australia/Sydney');
