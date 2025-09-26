@@ -199,13 +199,13 @@ class NflController extends Controller
     {
         $games = [];
         $chronological = request()->input('chronological', false);
-        $hasMatchToday = $this->repository->hasMatchToday();
+        // $hasMatchToday = $this->repository->hasMatchToday();
 
-        if ($hasMatchToday['status'] === true) {
-            $games = $this->repository->getScoreBoardDataFromApi($chronological);
-        } else {
-            $games = $this->repository->getScoreBoardDataFromDb($chronological);
-        }
+        // if ($hasMatchToday['status'] === true) {
+        //     $games = $this->repository->getScoreBoardDataFromApi($chronological);
+        // } else {
+        $games = $this->repository->getScoreBoardDataFromDb($chronological);
+        // }
 
         return response()->json($games);
 

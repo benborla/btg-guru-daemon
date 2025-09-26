@@ -253,7 +253,7 @@ class NflScoresRepository
             $data['data'] = json_decode($schedules->response,true)['shedules']['tournament'];
         }
 
-        $currentWeekSchedule = $this->apiRepository->getCurrentScheduledGames()->first();
+        $currentWeekSchedule = $this->getCurrentScheduledGames()->first();
         $currentWeek = $currentWeekSchedule->week;
         $weekInfo = $this->getWeeksInfo($currentWeekSchedule->season_type_id);
         $weekInfo = $weekInfo->where('week', $currentWeek)->first();
@@ -864,7 +864,7 @@ class NflScoresRepository
 
     public function getScoreBoardDataFromDb($chronological = false)
     {
-        $games=  $this->apiRepository->getCurrentScheduledGames();
+        $games=  $this->getCurrentScheduledGames();
 
         $data =  $games->map(function($game) {
 
@@ -969,6 +969,9 @@ class NflScoresRepository
     public function getTeamStandingsFlat()
     {
         $standings = $this->apiRepository->fetchApiStandings();
+
+        if (empty($standings)) return [];
+
         $standings = collect($standings['standings']['category']['league'])->map(function($league) {
             return $league['division'];
         });
@@ -981,6 +984,8 @@ class NflScoresRepository
     public function getTeamStandings($teamId)
     {
         $flatStandings = $this->getTeamStandingsFlat();
+
+        if (empty($flatStandings)) return [];
 
         $standings = $flatStandings->where('id', $teamId);
 
